@@ -350,6 +350,28 @@ svg path.stroke { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-li
 .sy.lit { background: var(--leaf-bg); box-shadow: 0 6px 0 var(--grass); }
 .syl.whole .sy { animation: joy .8s; }
 
+/* Mon prénom */
+.namechips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.nchip {
+  min-width: 46px; padding: 8px 6px 2px; border-radius: 14px;
+  font-family: var(--f-display); font-weight: 800; font-size: 40px; line-height: 1; text-align: center;
+  background: var(--card); color: var(--ink); box-shadow: 0 4px 0 var(--card-edge);
+  transition: background .3s, color .3s;
+}
+.nchip.empty { color: transparent; background: rgb(255 255 255 / .45); box-shadow: inset 0 0 0 3px var(--card-edge); }
+.nchip.cur { box-shadow: 0 4px 0 var(--sun-dk), 0 0 0 4px var(--sun); animation: pulse 1.1s ease-in-out infinite; }
+.nchip.ok { background: var(--leaf-bg); box-shadow: 0 4px 0 var(--grass); }
+.namechips.whole .nchip { animation: joy .8s; }
+.nameletters .choice { min-height: 96px; }
+.ltile.used { opacity: .25; transform: scale(.9); }
+.ltile.hinted { animation: pulse .5s ease-in-out 3; box-shadow: 0 7px 0 var(--sun-dk), 0 0 0 5px var(--sun); }
+.trace { position: relative; flex: 1; min-height: 0; width: 100%; max-width: 520px; touch-action: none; background: var(--card); border-radius: 24px; box-shadow: 0 6px 0 var(--card-edge); transition: box-shadow .3s; }
+.trace canvas { position: absolute; inset: 0; touch-action: none; }
+.trace.lit { box-shadow: 0 6px 0 var(--grass-dk), 0 0 0 6px var(--grass); }
+.name-empty { margin: auto; max-width: 320px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.name-empty .emo { font-size: 80px; }
+.name-empty p { margin: 0; font-size: 17px; color: var(--ink-soft); }
+
 /* ---------- Fin / pause ---------- */
 .big-star { font-size: clamp(110px, 32vw, 170px); line-height: 1; animation: star-in 1s cubic-bezier(.3, 1.6, .5, 1); }
 .end-title { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 52px; line-height: 1; }

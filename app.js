@@ -20,7 +20,7 @@
   const DEFAULTS = {
     volume: 1, rate: 0.9, effects: true, name: '',
     countMax: 30, letters: 'simple', timeLimit: 0,
-    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true }
+    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true }
   };
   const saved = store.get('settings', {});
   const settings = Object.assign({}, DEFAULTS, saved, { games: Object.assign({}, DEFAULTS.games, saved.games || {}) });
@@ -194,6 +194,10 @@
       name: 'Puzzles', intro: 'Les puzzles !', icon: '🧩', color: '#2BA7A0', rounds: 1, full: true,
       make(G) { return { custom: puzzleGame }; }
     },
+    prenom: {
+      name: 'Mon prénom', intro: 'On écrit ton prénom !', icon: '✏️', color: '#2C7BE5', rounds: 1, full: true,
+      make(G) { return { custom: nameGame }; }
+    },
     lire: {
       name: 'Lire', intro: 'On lit les mots !', icon: '📖', color: '#E07A2E', rounds: 4, full: true,
       make(G) { return { custom: readGame }; }
@@ -252,7 +256,7 @@
       }
     }
   };
-  const ORDER = ['potager', 'compter', 'couleurs', 'lettres', 'animaux', 'memory', 'puzzle', 'lire'];
+  const ORDER = ['potager', 'compter', 'couleurs', 'lettres', 'animaux', 'memory', 'puzzle', 'lire', 'prenom'];
 
   function letterPool() {
     const base = settings.letters === 'all' ? LETTERS : LETTERS.filter(x => SIMPLE_LETTERS.includes(x.l));
@@ -613,6 +617,239 @@
     }
   }
 
+  // ---------- Mon prénom : remettre les lettres dans l'ordre, puis les tracer au doigt ----------
+  const arc = (cx, cy, rx, ry, a0, a1, steps = 28) => {
+    const pts = [];
+    for (let i = 0; i <= steps; i++) { const a = (a0 + (a1 - a0) * i / steps) * Math.PI / 180; pts.push([cx + rx * Math.cos(a), cy + ry * Math.sin(a)]); }
+    return pts;
+  };
+  // Majuscules d'imprimerie dans une boîte 100 × 140, un tableau de points par trait (ordre des traits de l'école)
+  const GLYPHS = (() => {
+    const O = [arc(50, 70, 45, 70, -90, -450, 44)];
+    const P = [[[15, 0], [15, 140]], [[15, 0], [55, 0], ...arc(55, 37, 32, 37, -90, 90), [15, 74]]];
+    return {
+      A: [[[50, 0], [5, 140]], [[50, 0], [95, 140]], [[25, 88], [75, 88]]],
+      B: [[[15, 0], [15, 140]], [[15, 0], [55, 0], ...arc(55, 34, 32, 34, -90, 90), [15, 68]], [[15, 68], [58, 68], ...arc(58, 104, 34, 36, -90, 90), [15, 140]]],
+      C: [arc(55, 70, 45, 70, -50, -310, 36)],
+      D: [[[15, 0], [15, 140]], [[15, 0], [40, 0], ...arc(40, 70, 50, 70, -90, 90, 32), [15, 140]]],
+      E: [[[15, 0], [15, 140]], [[15, 0], [85, 0]], [[15, 70], [70, 70]], [[15, 140], [85, 140]]],
+      F: [[[15, 0], [15, 140]], [[15, 0], [85, 0]], [[15, 70], [70, 70]]],
+      G: [[...arc(52, 70, 45, 70, -45, -360, 40), [55, 70]]],
+      H: [[[15, 0], [15, 140]], [[85, 0], [85, 140]], [[15, 70], [85, 70]]],
+      I: [[[50, 0], [50, 140]]],
+      J: [[[70, 0], [70, 100], ...arc(42, 100, 28, 40, 0, 180)]],
+      K: [[[15, 0], [15, 140]], [[85, 0], [15, 82]], [[40, 58], [85, 140]]],
+      L: [[[15, 0], [15, 140], [85, 140]]],
+      M: [[[10, 140], [10, 0], [50, 90], [90, 0], [90, 140]]],
+      N: [[[15, 140], [15, 0], [85, 140], [85, 0]]],
+      O,
+      P,
+      Q: [...O, [[60, 105], [95, 140]]],
+      R: [...P, [[45, 74], [88, 140]]],
+      S: [[...arc(50, 35, 38, 35, -25, -270, 26), ...arc(50, 105, 40, 35, -90, 150, 26)]],
+      T: [[[5, 0], [95, 0]], [[50, 0], [50, 140]]],
+      U: [[[15, 0], [15, 95], ...arc(50, 95, 35, 45, 180, 0), [85, 0]]],
+      V: [[[5, 0], [50, 140], [95, 0]]],
+      W: [[[0, 0], [25, 140], [50, 40], [75, 140], [100, 0]]],
+      X: [[[10, 0], [90, 140]], [[90, 0], [10, 140]]],
+      Y: [[[10, 0], [50, 70]], [[90, 0], [50, 70], [50, 140]]],
+      Z: [[[10, 0], [90, 0], [10, 140], [90, 140]]]
+    };
+  })();
+  function resample(pts, step) {
+    const out = [pts[0]];
+    for (let i = 1; i < pts.length; i++) {
+      const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+      const d = Math.hypot(x1 - x0, y1 - y0), n = Math.max(1, Math.round(d / step));
+      for (let j = 1; j <= n; j++) out.push([x0 + (x1 - x0) * j / n, y0 + (y1 - y0) * j / n]);
+    }
+    return out;
+  }
+  const letterSay = c => (LETTERS.find(x => x.l === c) || { say: c }).say;
+  const distSeg = (px, py, ax, ay, bx, by) => {
+    const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+    const t = l2 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / l2)) : 0;
+    return Math.hypot(px - ax - t * dx, py - ay - t * dy);
+  };
+
+  function nameGame(G, f) {
+    const stage = $('#stage');
+    const raw = (settings.name || '').trim();
+    if (!raw) {
+      stage.append(el('div', 'name-empty', '<span class="emo">✏️</span><p>Pour ce jeu, entrez le prénom de l\'enfant dans le coin des parents (appui long sur la roue de l\'écran d\'accueil).</p>'));
+      G.prompt = "Demande à papa ou maman d'écrire ton prénom dans les réglages !";
+      say(G.prompt);
+      return;
+    }
+    const name = raw;
+    const shown = [...name.toUpperCase()].filter(c => /\p{L}/u.test(c));
+    const base = shown.map(c => c.normalize('NFD').replace(/[̀-ͯ]/g, '')).map(c => GLYPHS[c] ? c : 'I');
+    const n = shown.length;
+
+    const chips = el('div', 'namechips');
+    const chipEls = shown.map(c => { const s = el('span', 'nchip empty', c); chips.append(s); return s; });
+    stage.append(chips);
+
+    // Étape 1 : remettre les lettres dans l'ordre
+    let k = 0;
+    const ch = $('#choices');
+    ch.className = 'choices row nameletters';
+    ch.style.gridTemplateColumns = `repeat(${n <= 4 ? n : Math.min(4, Math.ceil(n / 2))}, 1fr)`;
+    const tiles = shuffle(shown.map((c, i) => ({ c, b: base[i] }))).map((t, i) => {
+      const b = el('button', 'choice ltile', `<span class="letter">${t.c}</span>`);
+      b.style.animationDelay = (i * 70) + 'ms';
+      b.setAttribute('aria-label', 'lettre ' + t.c);
+      b.onclick = async () => {
+        if (f !== G.flow || b.disabled) return;
+        audio();
+        if (t.b === base[k]) {
+          b.disabled = true; b.classList.add('used');
+          chipEls[k].classList.remove('empty', 'cur'); chipEls[k].classList.add('ok');
+          sfx.count(k + 1);
+          say(letterSay(base[k]));
+          k++;
+          if (k < n) chipEls[k].classList.add('cur');
+          else {
+            await sleep(500);
+            if (f !== G.flow) return;
+            sfx.good();
+            await say(`${praise()} ${base.map(letterSay).join(', ')} : ${name} ! C'est ton prénom !`);
+            if (f === G.flow) tracePhase();
+          }
+        } else {
+          sfx.soft();
+          say(`Ça, c'est la lettre ${letterSay(t.b)}. Cherche la lettre ${letterSay(base[k])} !`);
+          const good = tiles.find(x => !x.disabled && x.dataset.b === base[k]);
+          if (good) { good.classList.remove('hinted'); void good.offsetWidth; good.classList.add('hinted'); }
+        }
+      };
+      b.dataset.b = t.b;
+      ch.append(b);
+      return b;
+    });
+    chipEls[0].classList.add('cur');
+    $('#caption').textContent = 'Écris ton prénom';
+    G.prompt = `${name}, écris ton prénom avec les lettres ! Ton prénom commence par la lettre ${letterSay(base[0])}.`;
+    say(G.prompt);
+
+    // Étape 2 : tracer chaque lettre
+    async function tracePhase() {
+      ch.innerHTML = ''; ch.style.gridTemplateColumns = ''; ch.className = 'choices';
+      chipEls.forEach(c => c.classList.remove('ok'));
+      const wrap = el('div', 'trace');
+      stage.append(wrap);
+      for (let i = 0; i < n; i++) {
+        if (f !== G.flow) return;
+        chipEls.forEach((c, j) => c.classList.toggle('cur', j === i));
+        await traceLetter(wrap, base[i], i, f);
+        if (f !== G.flow) return;
+        chipEls[i].classList.remove('cur'); chipEls[i].classList.add('ok');
+        sfx.good();
+        await Promise.all([say(i < n - 1 ? pick(['Bravo !', 'Super !', 'Bien joué !', 'Oui !']) : 'Bravo !'), sleep(900)]);
+      }
+      if (f !== G.flow) return;
+      G.replay = null;
+      chips.classList.add('whole');
+      await say(`Tu as écrit ton prénom ! ${base.map(letterSay).join(', ')} : ${name} !`);
+      if (f === G.flow) { G.n = G.total; nextQ(); }
+    }
+  }
+
+  function traceLetter(wrap, L, idx, f) {
+    return new Promise(resolve => {
+      wrap.innerHTML = '';
+      const cv = el('canvas');
+      wrap.append(cv);
+      const W = wrap.clientWidth, H = wrap.clientHeight;
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+      const x = cv.getContext('2d');
+      x.scale(dpr, dpr);
+      const pad = 22;
+      const k = Math.min(W / (100 + pad * 2), H / (140 + pad * 2));
+      const ox = (W - 100 * k) / 2, oy = (H - 140 * k) / 2;
+      const P = ([a, b]) => [ox + a * k, oy + b * k];
+      const strokes = GLYPHS[L].map(s => { const pts = resample(s, 3).map(P); return { pts, hit: pts.map(() => false) }; });
+      const tol = 17 * k, lw = 18 * k;
+      const hue = (idx * 57 + 330) % 360;
+      let ink = [], demo = null, finished = false;
+
+      function draw() {
+        x.clearRect(0, 0, W, H);
+        x.lineCap = 'round'; x.lineJoin = 'round';
+        strokes.forEach(s => { x.strokeStyle = '#DCE6F3'; x.lineWidth = lw; poly(s.pts); x.stroke(); });
+        strokes.forEach(s => { x.strokeStyle = '#FFFFFF'; x.lineWidth = Math.max(2, 2.5 * k); x.setLineDash([2 * k, 7 * k]); poly(s.pts); x.stroke(); x.setLineDash([]); });
+        // parties déjà tracées
+        x.strokeStyle = `hsl(${hue} 80% 58%)`; x.lineWidth = lw * 0.92;
+        strokes.forEach(s => { for (let i = 1; i < s.pts.length; i++) if (s.hit[i] && s.hit[i - 1]) { x.beginPath(); x.moveTo(...s.pts[i - 1]); x.lineTo(...s.pts[i]); x.stroke(); } });
+        // points de départ numérotés
+        strokes.forEach((s, i) => {
+          // si deux traits partent du même point (E, F…), on décale le numéro le long du trait
+          const shared = strokes.slice(0, i).some(o => Math.hypot(o.pts[0][0] - s.pts[0][0], o.pts[0][1] - s.pts[0][1]) < 15 * k);
+          const [sx, sy] = s.pts[shared ? Math.min(s.pts.length - 1, Math.round(22 * k / (3 * k))) : 0];
+          x.fillStyle = '#3F9A43'; x.beginPath(); x.arc(sx, sy, 11 * k, 0, Math.PI * 2); x.fill();
+          if (strokes.length > 1) { x.fillStyle = '#fff'; x.font = `800 ${Math.round(12 * k)}px "Baloo 2", sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(i + 1), sx, sy + 1); }
+        });
+        // trace du doigt
+        if (ink.length > 1) { x.strokeStyle = 'rgba(239,79,108,.45)'; x.lineWidth = 7 * k; poly(ink); x.stroke(); }
+        if (demo) { x.fillStyle = '#FFC83D'; x.strokeStyle = '#D99A00'; x.lineWidth = 3; x.beginPath(); x.arc(demo[0], demo[1], 13 * k, 0, Math.PI * 2); x.fill(); x.stroke(); }
+      }
+      function poly(pts) { x.beginPath(); x.moveTo(...pts[0]); for (let i = 1; i < pts.length; i++) x.lineTo(...pts[i]); }
+
+      function runDemo() { return new Promise(res => {
+        const path = strokes.flatMap(s => s.pts.map(p => p));
+        const starts = new Set(); let acc = 0; strokes.forEach(s => { starts.add(acc); acc += s.pts.length; });
+        let i = 0, last = 0;
+        demo = path[0];
+        const step = t => {
+          if (!demo || f !== G.flow || finished) { demo = null; draw(); res(); return; }
+          if (t - last > (starts.has(i) && i ? 260 : 16)) { last = t; demo = path[i]; i++; draw(); }
+          if (i < path.length) requestAnimationFrame(step); else { demo = null; draw(); res(); }
+        };
+        requestAnimationFrame(step);
+      }); }
+      G.replay = () => { audio(); say(`La lettre ${letterSay(L)}. Regarde bien, et suis le chemin avec ton doigt !`); runDemo(); };
+
+      function covered() { return strokes.every(s => s.hit.filter(Boolean).length / s.hit.length >= 0.85 && (s.hit[0] || s.hit[1]) && (s.hit[s.hit.length - 1] || s.hit[s.hit.length - 2])); }
+      function mark(a, b) {
+        strokes.forEach(s => s.pts.forEach((p, i) => { if (!s.hit[i] && distSeg(p[0], p[1], a[0], a[1], b[0], b[1]) < tol) s.hit[i] = true; }));
+      }
+      let down = false, lastP = null, beepAt = 0;
+      const pos = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+      cv.addEventListener('pointerdown', e => {
+        if (finished || f !== G.flow) return;
+        e.preventDefault(); audio();
+        try { cv.setPointerCapture(e.pointerId); } catch (err) { /* rien */ }
+        demo = null; down = true; lastP = pos(e); ink = [lastP]; mark(lastP, lastP); draw();
+      });
+      cv.addEventListener('pointermove', e => {
+        if (!down || finished) return;
+        const p = pos(e);
+        const before = strokes.reduce((a, s) => a + s.hit.filter(Boolean).length, 0);
+        mark(lastP, p); lastP = p; ink.push(p);
+        const after = strokes.reduce((a, s) => a + s.hit.filter(Boolean).length, 0);
+        const now = performance.now();
+        if (after > before && now - beepAt > 120) { beepAt = now; note(523 + after * 6, 0, 0.06, 'sine', 0.05); }
+        draw();
+        if (covered()) done();
+      });
+      const up = () => { if (!down) return; down = false; ink = []; draw(); if (covered()) done(); };
+      cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+      function done() { if (finished) return; finished = true; down = false; ink = []; strokes.forEach(s => s.hit.fill(true)); draw(); wrap.classList.add('lit'); setTimeout(() => wrap.classList.remove('lit'), 700); G.replay = null; resolve(); }
+
+      draw();
+      (async () => {
+        await say(idx === 0 ? `Maintenant, on trace les lettres ! La lettre ${letterSay(L)}. Regarde !` : `La lettre ${letterSay(L)}. Regarde !`);
+        if (f !== G.flow || finished) return;
+        await runDemo();
+        if (f !== G.flow || finished) return;
+        say(idx === 0 ? 'À toi ! Pars du point vert et suis le chemin avec ton doigt.' : 'À toi !');
+      })();
+      G.prompt = `La lettre ${letterSay(L)}`;
+      $('#caption').textContent = 'Suis le chemin avec ton doigt';
+    });
+  }
+
   // ---------- Écrans ----------
   let screen = 'start';
   function show(id) {
@@ -665,7 +902,7 @@
 
   function nextQ() {
     const f = ++G.flow;
-    $('#stage').innerHTML = ''; $('#choices').innerHTML = ''; $('#caption').textContent = '';
+    $('#stage').innerHTML = ''; $('#choices').innerHTML = ''; $('#choices').style.gridTemplateColumns = ''; $('#caption').textContent = ''; G.replay = null;
     if (G.n >= G.total) { finish(); return; }
     const q = G.def.make(G);
     if (q.custom) { q.custom(G, f); return; }
@@ -710,7 +947,7 @@
     }
   }
 
-  function repeat() { audio(); if (G && G.prompt) say(G.prompt); }
+  function repeat() { audio(); if (G && G.replay) G.replay(); else if (G && G.prompt) say(G.prompt); }
 
   function finish() {
     if (G.def.counting) store.set('countLevel', Math.min(settings.countMax, countLevel() + 2));
@@ -725,7 +962,7 @@
     const solo = G.total === 1;
     $('#btn-next').hidden = !solo;
     $('#btn-again').hidden = solo;
-    say(solo ? `Bravo${who} ! Tu as réussi ! On passe au suivant ?` : `Bravo${who} ! Tu as gagné ${G.total} étoiles ! On rejoue ?`);
+    say(G.id === 'prenom' ? `Bravo${who} ! On recommence ?` : solo ? `Bravo${who} ! Tu as réussi ! On passe au suivant ?` : `Bravo${who} ! Tu as gagné ${G.total} étoiles ! On rejoue ?`);
   }
 
   // ---------- Confettis ----------
