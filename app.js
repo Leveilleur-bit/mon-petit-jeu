@@ -20,7 +20,8 @@
   const DEFAULTS = {
     volume: 1, rate: 0.9, effects: true, name: '',
     countMax: 30, letters: 'simple', timeLimit: 0,
-    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true }
+    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true },
+    homeMode: 'rotate'
   };
   const saved = store.get('settings', {});
   const settings = Object.assign({}, DEFAULTS, saved, { games: Object.assign({}, DEFAULTS.games, saved.games || {}) });
@@ -194,6 +195,62 @@
       name: 'Puzzles', intro: 'Les puzzles !', icon: '🧩', color: '#2BA7A0', rounds: 1, full: true,
       make(G) { return { custom: puzzleGame }; }
     },
+    formes: {
+      name: 'Formes', intro: 'Les formes !', icon: '🔷', color: '#1E9BD6', rounds: 5,
+      make(G) {
+        const t = pickNew(SHAPES, G, x => x.n);
+        const cols = shuffle(SHAPE_COLORS);
+        return {
+          prompt: `Où est ${t.n} ?`, success: `C'est ${t.n} !`,
+          choices: shuffle([t, ...others(SHAPES, t, 2)]).map((o, i) => ({
+            html: shapeSvg(o, cols[i]), label: o.n, correct: o === t,
+            wrong: `Ça, c'est ${o.n}. Où est ${t.n} ?`
+          }))
+        };
+      }
+    },
+    tailles: {
+      name: 'Grand et petit', intro: 'Le plus grand, le plus petit !', icon: '🐘', color: '#7A5BD6', rounds: 5,
+      make(G) {
+        const e = pickNew(SIZE_ITEMS, G, x => x);
+        const big = G.n % 2 === 0;
+        const want = big ? 'le plus grand' : 'le plus petit';
+        const target = big ? 'grand' : 'petit';
+        const sizes = [{ s: 0.36, k: 'petit' }, { s: 0.64, k: 'moyen' }, { s: 1, k: 'grand' }];
+        return {
+          prompt: `Touche ${want} !`, success: `C'est ${want} !`, row: true, cls: 'sizes',
+          choices: shuffle(sizes).map(z => ({
+            html: `<span class="emo" style="transform:scale(${z.s})">${e}</span>`, label: z.k, correct: z.k === target,
+            wrong: z.k === 'moyen' ? `Celui-là est moyen. Cherche ${want} !` : `Celui-là, c'est ${z.k === 'grand' ? 'le plus grand' : 'le plus petit'} ! Cherche ${want} !`
+          }))
+        };
+      }
+    },
+    ombres: {
+      name: 'Les ombres', intro: 'Les ombres !', icon: '🦒', color: '#4A5596', rounds: 5,
+      make(G) {
+        const t = pickNew(SHADOWS, G, x => x.n);
+        const hint = el('button', 'hint big', `<span class="emo">${t.e}</span>`);
+        hint.setAttribute('aria-label', 'Écouter encore');
+        hint.onclick = repeat;
+        return {
+          visual: hint,
+          prompt: `Où est l'ombre ${deN(t.n)} ?`, success: `C'est l'ombre ${deN(t.n)} !`,
+          choices: shuffle([t, ...others(SHADOWS, t, 2)]).map(o => ({
+            html: `<span class="emo shadow">${o.e}</span>`, label: "l'ombre " + deN(o.n), correct: o === t,
+            wrong: `Ça, c'est l'ombre ${deN(o.n)}. Cherche l'ombre ${deN(t.n)} !`
+          }))
+        };
+      }
+    },
+    coloriage: {
+      name: 'Coloriage', intro: 'Le coloriage !', icon: '🖍️', color: '#E53935', rounds: 1, full: true,
+      make(G) { return { custom: colorGame }; }
+    },
+    musique: {
+      name: 'Musique', intro: 'La musique !', icon: '🎵', color: '#16A3A3', rounds: 1, full: true,
+      make(G) { return { custom: musicGame }; }
+    },
     prenom: {
       name: 'Mon prénom', intro: 'On écrit ton prénom !', icon: '✏️', color: '#2C7BE5', rounds: 1, full: true,
       make(G) { return { custom: nameGame }; }
@@ -256,7 +313,7 @@
       }
     }
   };
-  const ORDER = ['potager', 'compter', 'couleurs', 'lettres', 'animaux', 'memory', 'puzzle', 'lire', 'prenom'];
+  const ORDER = ['potager', 'compter', 'couleurs', 'lettres', 'animaux', 'memory', 'puzzle', 'lire', 'prenom', 'formes', 'tailles', 'ombres', 'coloriage', 'musique'];
 
   function letterPool() {
     const base = settings.letters === 'all' ? LETTERS : LETTERS.filter(x => SIMPLE_LETTERS.includes(x.l));
@@ -850,6 +907,217 @@
     });
   }
 
+  // ---------- Formes ----------
+  const starPts = (() => { const p = []; for (let i = 0; i < 10; i++) { const r = i % 2 ? 19 : 46, a = -Math.PI / 2 + i * Math.PI / 5; p.push((50 + r * Math.cos(a)).toFixed(1) + ',' + (53 + r * Math.sin(a)).toFixed(1)); } return p.join(' '); })();
+  const SHAPES = [
+    { n: 'le rond', svg: '<circle cx="50" cy="50" r="42"/>' },
+    { n: 'le carré', svg: '<rect x="10" y="10" width="80" height="80" rx="4"/>' },
+    { n: 'le triangle', svg: '<polygon points="50,6 95,90 5,90"/>' },
+    { n: 'le rectangle', svg: '<rect x="3" y="26" width="94" height="48" rx="4"/>' },
+    { n: "l'étoile", svg: `<polygon points="${starPts}"/>` },
+    { n: 'le cœur', svg: '<path d="M50 90 C 20 68, 3 50, 12 29 C 20 11, 44 10, 50 30 C 56 10, 80 11, 88 29 C 97 50, 80 68, 50 90 Z"/>' },
+    { n: 'le losange', svg: '<polygon points="50,3 93,50 50,97 7,50"/>' }
+  ];
+  const SHAPE_COLORS = ['#E53935', '#1E63D6', '#FFC21F', '#2EAD4B', '#FF8A1F', '#8E44C9', '#FF6FAE'];
+  const shapeSvg = (s, col) => `<svg class="shape" viewBox="0 0 100 100" aria-hidden="true"><g fill="${col}" stroke="rgb(36 50 79 / .35)" stroke-width="3" stroke-linejoin="round">${s.svg}</g></svg>`;
+
+  // ---------- Les ombres ----------
+  const SHADOWS = [
+    { e: '🐘', n: "l'éléphant" }, { e: '🦒', n: 'la girafe' }, { e: '🐰', n: 'le lapin' }, { e: '🐌', n: "l'escargot" },
+    { e: '🦋', n: 'le papillon' }, { e: '🐢', n: 'la tortue' }, { e: '🦀', n: 'le crabe' }, { e: '🐙', n: 'la pieuvre' },
+    { e: '🚲', n: 'le vélo' }, { e: '✈️', n: "l'avion" }, { e: '🎸', n: 'la guitare' }, { e: '🌵', n: 'le cactus' },
+    { e: '🍐', n: 'la poire' }, { e: '🍌', n: 'la banane' }, { e: '🐓', n: 'le coq' }, { e: '🦕', n: 'le dinosaure' },
+    { e: '🐬', n: 'le dauphin' }, { e: '☂️', n: 'le parapluie' }, { e: '🍄', n: 'le champignon' }, { e: '🦆', n: 'le canard' }
+  ];
+  const deN = n => n.startsWith('le ') ? 'du ' + n.slice(3) : n.startsWith('la ') ? 'de la ' + n.slice(3) : 'de ' + n;
+
+  // ---------- Grand et petit ----------
+  const SIZE_ITEMS = ['🐘', '🐻', '🎈', '🏠', '🍎', '🐳', '🌳', '🚗', '🐶', '⭐', '🌻', '🦁'];
+
+  // ---------- Coloriage ----------
+  const PAINT = [
+    { n: 'rouge', hex: '#E53935' }, { n: 'orange', hex: '#FF8A1F' }, { n: 'jaune', hex: '#FFD21F' },
+    { n: 'vert', hex: '#2EAD4B' }, { n: 'bleu', hex: '#1E63D6' }, { n: 'violet', hex: '#8E44C9' },
+    { n: 'rose', hex: '#FF7EB6' }, { n: 'marron', hex: '#8B5A2B' }, { n: 'noir', hex: '#2A2A30' }, { n: 'blanc', hex: '#FFFFFF' }
+  ];
+  const DRAWINGS = [
+    { n: 'la maison', svg: `
+      <circle class="zone" cx="250" cy="50" r="28"/>
+      <path class="zone" d="M40 80 a18 18 0 0 1 30 -15 a22 22 0 0 1 40 5 a16 16 0 0 1 5 30 h-70 a15 15 0 0 1 -5 -20 z"/>
+      <rect class="zone" x="195" y="60" width="25" height="60"/>
+      <rect class="zone" x="60" y="130" width="180" height="130"/>
+      <polygon class="zone" points="40,135 150,45 260,135"/>
+      <rect class="zone" x="130" y="190" width="45" height="70" rx="4"/>
+      <rect class="zone" x="78" y="155" width="40" height="35"/>
+      <rect class="zone" x="185" y="155" width="40" height="35"/>
+      <path class="zone" d="M0 260 H300 V300 H0 Z"/>` },
+    { n: 'la fleur', svg: `
+      <polygon class="zone" points="105,232 195,232 182,296 118,296"/>
+      <rect class="zone" x="145" y="125" width="10" height="107"/>
+      <ellipse class="zone" cx="118" cy="190" rx="30" ry="12" transform="rotate(-30 118 190)"/>
+      <ellipse class="zone" cx="182" cy="172" rx="30" ry="12" transform="rotate(30 182 172)"/>
+      <circle class="zone" cx="150" cy="50" r="28"/>
+      <circle class="zone" cx="191" cy="74" r="28"/>
+      <circle class="zone" cx="191" cy="121" r="28"/>
+      <circle class="zone" cx="150" cy="145" r="28"/>
+      <circle class="zone" cx="109" cy="121" r="28"/>
+      <circle class="zone" cx="109" cy="74" r="28"/>
+      <circle class="zone" cx="150" cy="97" r="26"/>
+      <circle class="zone" cx="255" cy="45" r="22"/>` },
+    { n: 'le poisson', svg: `
+      <path class="zone" d="M0 268 Q 37 252 75 268 T 150 268 T 225 268 T 300 268 V300 H0 Z"/>
+      <polygon class="zone" points="62,150 14,102 14,198"/>
+      <path class="zone" d="M118 100 Q150 42 195 102 Z"/>
+      <ellipse class="zone" cx="148" cy="152" rx="95" ry="60"/>
+      <circle class="zone" cx="118" cy="162" r="15"/>
+      <circle class="zone" cx="158" cy="128" r="12"/>
+      <circle class="zone" cx="166" cy="182" r="11"/>
+      <circle class="zone" cx="207" cy="135" r="15"/>
+      <circle class="zone" cx="211" cy="135" r="6"/>
+      <circle class="zone" cx="262" cy="92" r="10"/>
+      <circle class="zone" cx="278" cy="60" r="7"/>
+      <circle class="zone" cx="258" cy="32" r="12"/>` },
+    { n: 'le papillon', svg: `
+      <path class="line" d="M145 58 Q128 26 112 20"/><path class="line" d="M155 58 Q172 26 188 20"/>
+      <circle class="zone" cx="110" cy="19" r="8"/><circle class="zone" cx="190" cy="19" r="8"/>
+      <ellipse class="zone" cx="98" cy="112" rx="62" ry="50" transform="rotate(-20 98 112)"/>
+      <ellipse class="zone" cx="202" cy="112" rx="62" ry="50" transform="rotate(20 202 112)"/>
+      <ellipse class="zone" cx="108" cy="205" rx="44" ry="40"/>
+      <ellipse class="zone" cx="192" cy="205" rx="44" ry="40"/>
+      <circle class="zone" cx="92" cy="106" r="18"/><circle class="zone" cx="208" cy="106" r="18"/>
+      <circle class="zone" cx="106" cy="208" r="13"/><circle class="zone" cx="194" cy="208" r="13"/>
+      <ellipse class="zone" cx="150" cy="158" rx="14" ry="78"/>
+      <circle class="zone" cx="150" cy="70" r="18"/>` },
+    { n: 'la voiture', svg: `
+      <circle class="zone" cx="45" cy="50" r="26"/>
+      <rect class="zone" x="0" y="256" width="300" height="44"/>
+      <path class="zone" d="M88 150 L114 98 H202 L232 150 Z"/>
+      <rect class="zone" x="36" y="145" width="234" height="72" rx="22"/>
+      <polygon class="zone" points="102,146 122,108 152,108 152,146"/>
+      <polygon class="zone" points="162,146 162,108 196,108 218,146"/>
+      <circle class="zone" cx="262" cy="172" r="9"/>
+      <circle class="zone" cx="95" cy="220" r="31"/><circle class="zone" cx="220" cy="220" r="31"/>
+      <circle class="zone" cx="95" cy="220" r="12"/><circle class="zone" cx="220" cy="220" r="12"/>` }
+  ];
+  function colorGame(G, f) {
+    const i = G.opts.next ? (store.get('lastDrawing', -1) + 1) % DRAWINGS.length : rand(DRAWINGS.length);
+    store.set('lastDrawing', i);
+    const d = DRAWINGS[i];
+    const stage = $('#stage');
+    const card = el('div', 'paint-card', `<svg viewBox="0 0 300 300" class="paint-svg" aria-label="Dessin : ${d.n}">${d.svg}</svg>`);
+    const doneBtn = el('button', 'paint-done', '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M5 12.5l4.5 4.5L19 7.5"/></svg>');
+    doneBtn.setAttribute('aria-label', "J'ai fini");
+    doneBtn.hidden = true;
+    card.append(doneBtn);
+    stage.append(card);
+    let cur = PAINT[rand(7)];
+    const zones = $$('.zone', card);
+    const filled = new Set();
+    zones.forEach(z => z.addEventListener('pointerdown', e => {
+      if (f !== G.flow) return;
+      e.preventDefault(); audio();
+      z.style.fill = cur.hex;
+      z.classList.remove('pop'); void z.getBBox(); z.classList.add('pop');
+      if (cur.n === 'blanc') filled.delete(z); else filled.add(z);
+      note(660 + rand(6) * 80, 0, 0.12, 'sine', 0.12);
+      if (filled.size >= Math.ceil(zones.length * 0.8) && doneBtn.hidden) { doneBtn.hidden = false; say("Quand tu as fini, touche le bouton vert !"); }
+    }));
+    doneBtn.onclick = async () => {
+      if (f !== G.flow) return;
+      audio(); sfx.good();
+      await say(`Bravo ! Il est trop beau, ton dessin !`);
+      if (f === G.flow) { G.n = G.total; nextQ(); }
+    };
+    const ch = $('#choices');
+    ch.className = 'choices row palette';
+    PAINT.forEach(p => {
+      const b = el('button', 'swatch' + (p === cur ? ' on' : ''));
+      b.style.setProperty('--paint', p.hex);
+      b.setAttribute('aria-label', p.n);
+      b.onclick = () => { audio(); cur = p; $$('.swatch', ch).forEach(x => x.classList.toggle('on', x === b)); sfx.tap(); say(cap(p.n)); };
+      ch.append(b);
+    });
+    G.prompt = `On colorie ${d.n} ! Choisis une couleur en bas, puis touche le dessin.`;
+    $('#caption').textContent = '';
+    say(G.prompt);
+  }
+
+  // ---------- Musique : le xylophone ----------
+  const BARS = [
+    { n: 'do', f: 523.25, c: '#E53935' }, { n: 'ré', f: 587.33, c: '#FF8A1F' }, { n: 'mi', f: 659.25, c: '#FFC21F' },
+    { n: 'fa', f: 698.46, c: '#2EAD4B' }, { n: 'sol', f: 783.99, c: '#16A3A3' }, { n: 'la', f: 880.0, c: '#1E63D6' },
+    { n: 'si', f: 987.77, c: '#8E44C9' }, { n: 'do', f: 1046.5, c: '#FF6FAE' }
+  ];
+  const SONGS = [
+    { n: 'Au clair de la lune', e: '🌙', notes: [0, 0, 0, 1, 2, 1, 0, 2, 1, 1, 0] },
+    { n: 'Frère Jacques', e: '🔔', notes: [0, 1, 2, 0, 0, 1, 2, 0, 2, 3, 4, 2, 3, 4] },
+    { n: 'Ah, vous dirai-je maman', e: '⭐', notes: [0, 0, 4, 4, 5, 5, 4, 3, 3, 2, 2, 1, 1, 0] }
+  ];
+  function mallet(freq) {
+    const a = audio(); if (!a) return;
+    const t0 = a.currentTime, v = 0.32 * settings.volume;
+    [[freq, v, 1.4], [freq * 4.01, v * 0.18, 0.25], [freq * 2, v * 0.12, 0.6]].forEach(([fq, vol, dur]) => {
+      const o = a.createOscillator(), g = a.createGain();
+      o.type = 'sine'; o.frequency.value = fq;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(vol + 0.0001, t0 + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g); g.connect(a.destination); o.start(t0); o.stop(t0 + dur + 0.05);
+    });
+  }
+  function musicGame(G, f) {
+    const stage = $('#stage');
+    const songsRow = el('div', 'songs');
+    const xylo = el('div', 'xylo');
+    let song = null, pos = 0;
+    const bars = BARS.map((b, i) => {
+      const bt = el('button', 'xbar', `<span>${b.n}</span>`);
+      bt.style.setProperty('--c', b.c);
+      bt.style.setProperty('--w', (100 - i * 6.5) + '%');
+      bt.setAttribute('aria-label', b.n);
+      bt.addEventListener('pointerdown', e => {
+        if (f !== G.flow) return;
+        e.preventDefault();
+        hush();
+        mallet(b.f);
+        bt.classList.remove('hit'); void bt.offsetWidth; bt.classList.add('hit');
+        if (song && i === song.notes[pos]) {
+          bt.classList.remove('next');
+          pos++;
+          if (pos < song.notes.length) bars[song.notes[pos]].classList.add('next');
+          else songDone();
+        }
+      });
+      xylo.append(bt);
+      return bt;
+    });
+    SONGS.forEach(s => {
+      const b = el('button', 'songbtn', s.e);
+      b.setAttribute('aria-label', s.n);
+      b.onclick = async () => {
+        if (f !== G.flow) return;
+        audio(); sfx.tap();
+        bars.forEach(x => x.classList.remove('next'));
+        $$('.songbtn', songsRow).forEach(x => x.classList.toggle('on', x === b));
+        song = s; pos = 0;
+        await say(`On joue ${s.n} ! Touche la barre qui brille.`);
+        if (song === s && pos === 0) bars[s.notes[0]].classList.add('next');
+      };
+      songsRow.append(b);
+    });
+    async function songDone() {
+      const s = song; song = null;
+      $$('.songbtn', songsRow).forEach(x => x.classList.remove('on'));
+      await sleep(500);
+      sfx.good(); confetti();
+      say(`Bravo ! Tu as joué ${s.n} !`);
+    }
+    stage.append(songsRow, xylo);
+    G.prompt = 'Tape sur les barres pour faire de la musique ! Ou choisis une chanson en haut.';
+    $('#caption').textContent = '';
+    say(G.prompt);
+  }
+
   // ---------- Écrans ----------
   let screen = 'start';
   function show(id) {
@@ -857,9 +1125,22 @@
     screen = id;
   }
 
+  // 9 jeux à l'accueil, tirés à chaque ouverture : d'abord ceux qui n'étaient pas là la dernière fois
+  const HOME_MAX = 9;
+  let homeIds = null;
+  function pickHome() {
+    const enabled = ORDER.filter(id => settings.games[id]);
+    if (settings.homeMode === 'all' || enabled.length <= HOME_MAX) { homeIds = enabled; return; }
+    const last = store.get('lastHome', []);
+    const sel = shuffle(enabled.filter(id => !last.includes(id))).concat(shuffle(enabled.filter(id => last.includes(id)))).slice(0, HOME_MAX);
+    homeIds = ORDER.filter(id => sel.includes(id));
+    store.set('lastHome', homeIds);
+  }
   function buildHome() {
     const tiles = $('#tiles'); tiles.innerHTML = '';
-    const list = ORDER.filter(id => settings.games[id]);
+    if (!homeIds) pickHome();
+    const list = homeIds.filter(id => settings.games[id]);
+    tiles.classList.toggle('many', list.length > HOME_MAX);
     list.forEach((id, i) => {
       const g = GAMES[id];
       const b = el('button', 'tile', `<span class="emo">${g.icon}</span><span class="lbl">${g.name}</span>`);
@@ -907,7 +1188,7 @@
     const q = G.def.make(G);
     if (q.custom) { q.custom(G, f); return; }
     if (q.visual) $('#stage').append(q.visual);
-    renderChoices(q, f, false);
+    renderChoices(q, f, !!q.row);
   }
 
   function renderChoices(q, f, row) {
@@ -915,7 +1196,7 @@
     $('#caption').textContent = q.caption || q.prompt;
     const ch = $('#choices');
     ch.innerHTML = '';
-    ch.className = 'choices' + (row ? ' row' : '');
+    ch.className = 'choices' + (row ? ' row' : '') + (q.cls ? ' ' + q.cls : '');
     q.choices.forEach((c, i) => {
       const b = el('button', 'choice', c.html);
       b.setAttribute('aria-label', c.label);
@@ -1061,11 +1342,12 @@
     $('#set-countmax').value = String(settings.countMax);
     $('#set-letters').value = settings.letters;
     $('#set-limit').value = String(settings.timeLimit);
+    $('#set-home').value = settings.homeMode;
     const gl = $('#set-games'); gl.innerHTML = '';
     ORDER.forEach(id => {
       const lab = el('label', '', `<input type="checkbox" id="game-${id}"> ${GAMES[id].icon} ${GAMES[id].name}`);
       const cb = $('input', lab); cb.checked = !!settings.games[id];
-      cb.onchange = () => { settings.games[id] = cb.checked; saveSettings(); };
+      cb.onchange = () => { settings.games[id] = cb.checked; saveSettings(); homeIds = null; };
       gl.append(lab);
     });
     refreshParentInfo();
@@ -1086,6 +1368,7 @@
   $('#set-name').oninput = e => { settings.name = e.target.value.trim(); saveSettings(); };
   $('#set-countmax').onchange = e => { settings.countMax = +e.target.value; saveSettings(); refreshParentInfo(); };
   $('#set-letters').onchange = e => { settings.letters = e.target.value; saveSettings(); };
+  $('#set-home').onchange = e => { settings.homeMode = e.target.value; saveSettings(); homeIds = null; };
   $('#set-limit').onchange = e => { settings.timeLimit = +e.target.value; saveSettings(); refreshParentInfo(); };
   $('#btn-test-voice').onclick = () => { audio(); sfx.good(); say(settings.name ? `Bonjour ${settings.name} ! Où est la carotte ?` : 'Bonjour ! Où est la carotte ?'); };
   $('#btn-count-reset').onclick = () => { store.set('countLevel', 5); refreshParentInfo(); };
@@ -1095,7 +1378,7 @@
 
   // ---------- Boutons ----------
   $('#btn-start').onclick = () => {
-    audio(); sfx.good(); pickVoice();
+    audio(); sfx.good(); pickVoice(); pickHome();
     if (limitReached()) { goRest(); return; }
     buildHome(); show('home');
     say(settings.name ? `Bonjour ${settings.name} ! Choisis un jeu !` : 'Bonjour ! Choisis un jeu !');
