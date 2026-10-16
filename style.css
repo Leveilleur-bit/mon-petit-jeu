@@ -16,6 +16,11 @@
   --leaf-bg: #DDF4D6;
   --night: #2C3768;
   --night-2: #4A5596;
+  --rose: #F48FC4;
+  --rose-dk: #C9579A;
+  --lilac: #B48BE8;
+  --syl-a: #1E63D6;
+  --syl-b: #E53950;
 
   --f-display: "Baloo 2", "Nunito", "Trebuchet MS", system-ui, sans-serif;
   --f-body: "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -108,6 +113,7 @@ svg path.stroke { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-li
 .home-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .tiles {
   flex: 1;
+  gap: 12px;
   min-height: 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -130,7 +136,7 @@ svg path.stroke { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-li
   transition: transform .1s;
   animation: pop-in .45s backwards cubic-bezier(.3, 1.6, .5, 1);
 }
-.tile .emo { font-size: clamp(54px, 11vh, 96px); line-height: 1.05; }
+.tile .emo { font-size: clamp(42px, 8vh, 90px); line-height: 1.05; }
 .tile .lbl { font-family: var(--f-display); font-weight: 800; font-size: 19px; line-height: 1.1; text-align: center; }
 .tile:active { transform: translateY(6px); box-shadow: 0 1px 0 var(--tc, var(--card-edge)); }
 .tile.wide { grid-column: 1 / -1; flex-direction: row; gap: 16px; }
@@ -272,6 +278,77 @@ svg path.stroke { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-li
   font: 800 14px/24px var(--f-display);
   text-align: center;
 }
+
+#game.solo .progress { visibility: hidden; }
+
+/* Memory princesse */
+.mgrid {
+  flex: 1; min-height: 0; width: 100%; max-width: 520px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(var(--cols), 1fr); grid-template-rows: repeat(var(--rows), 1fr);
+  gap: 12px;
+}
+.mcard { position: relative; border: 0; padding: 0; background: none; perspective: 700px; min-height: 0; animation: pop-in .4s backwards cubic-bezier(.3, 1.6, .5, 1); }
+.mface {
+  position: absolute; inset: 0; border-radius: 22px;
+  display: grid; place-items: center;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  transition: transform .45s cubic-bezier(.4, 1.4, .6, 1);
+}
+.mback {
+  background:
+    radial-gradient(circle at 30% 30%, rgb(255 255 255 / .55) 0 6%, transparent 7%),
+    radial-gradient(circle at 70% 62%, rgb(255 255 255 / .45) 0 5%, transparent 6%),
+    radial-gradient(circle at 42% 78%, rgb(255 255 255 / .35) 0 3%, transparent 4%),
+    linear-gradient(145deg, var(--rose), var(--lilac));
+  box-shadow: 0 6px 0 var(--rose-dk);
+}
+.mback::after { content: "✦"; color: rgb(255 255 255 / .9); font-size: 34px; }
+.mfront { background: var(--card); box-shadow: 0 6px 0 var(--card-edge); font-size: clamp(44px, 9vh, 80px); transform: rotateY(180deg); }
+.mcard.open .mback { transform: rotateY(-180deg); }
+.mcard.open .mfront { transform: rotateY(0); }
+.mcard.found .mfront { background: #FFF0F8; box-shadow: 0 6px 0 var(--rose), 0 0 0 5px var(--rose); animation: joy .8s; }
+
+/* Puzzles */
+.pzpick { flex: 1; min-height: 0; width: 100%; max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 12px; }
+.pzthumb {
+  border: 0; border-radius: 22px; background: var(--bg); min-height: 0;
+  font-size: clamp(48px, 9vh, 84px); line-height: 1;
+  box-shadow: 0 6px 0 rgb(36 50 79 / .18);
+  animation: pop-in .4s backwards cubic-bezier(.3, 1.6, .5, 1);
+}
+.pzthumb:active { transform: translateY(5px); box-shadow: 0 1px 0 rgb(36 50 79 / .18); }
+.pz { position: relative; flex: 1; min-height: 0; width: 100%; touch-action: none; }
+.pzboard { position: absolute; border-radius: 18px; background: var(--card); box-shadow: 0 6px 0 var(--card-edge); overflow: hidden; }
+.pzboard::before { content: ""; position: absolute; inset: 0; background: var(--img) center / cover; opacity: .2; transition: opacity .6s; }
+.pzboard.complete::before { opacity: 1; }
+.pzslot { position: absolute; border: 2px dashed rgb(36 50 79 / .25); }
+.piece {
+  position: absolute; transform-origin: 0 0;
+  border-radius: 6px;
+  box-shadow: 0 4px 10px rgb(36 50 79 / .25), 0 0 0 2px rgb(255 255 255 / .9);
+  transition: left .3s cubic-bezier(.3, 1.4, .5, 1), top .3s cubic-bezier(.3, 1.4, .5, 1), transform .3s;
+  touch-action: none; z-index: 2;
+  animation: pop-in .4s backwards cubic-bezier(.3, 1.6, .5, 1);
+}
+.piece.drag { transition: none; z-index: 10; box-shadow: 0 14px 28px rgb(36 50 79 / .35), 0 0 0 3px var(--sun); }
+.piece.placed { z-index: 1; box-shadow: none; border-radius: 0; }
+.pzhint { position: absolute; border-radius: 6px; box-shadow: 0 0 0 5px var(--sun) inset; background: rgb(255 200 61 / .3); animation: pulse .6s ease-in-out 3; z-index: 3; pointer-events: none; }
+
+/* Lire */
+.rpic { border: 0; background: var(--card); border-radius: 50%; width: min(46vw, 190px); aspect-ratio: 1; max-width: 100%; font-size: min(26vw, 110px); line-height: 1; box-shadow: 0 7px 0 var(--card-edge); margin-top: 4vh; }
+.rpic.happy { animation: joy .8s; }
+.syl { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: auto; margin-bottom: 4vh; }
+.sy {
+  border: 0; border-radius: 20px; background: var(--card);
+  min-width: 96px; padding: 14px 14px 8px;
+  font-family: var(--f-display); font-weight: 800; font-size: clamp(40px, 12vw, 64px); line-height: 1;
+  color: var(--syl-a); box-shadow: 0 6px 0 var(--card-edge);
+  animation: pop-in .4s backwards cubic-bezier(.3, 1.6, .5, 1);
+}
+.sy.alt { color: var(--syl-b); }
+.sy.next { animation: pulse 1s ease-in-out infinite; box-shadow: 0 6px 0 var(--sun-dk), 0 0 0 4px var(--sun); }
+.sy.lit { background: var(--leaf-bg); box-shadow: 0 6px 0 var(--grass); }
+.syl.whole .sy { animation: joy .8s; }
 
 /* ---------- Fin / pause ---------- */
 .big-star { font-size: clamp(110px, 32vw, 170px); line-height: 1; animation: star-in 1s cubic-bezier(.3, 1.6, .5, 1); }

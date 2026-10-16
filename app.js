@@ -20,7 +20,7 @@
   const DEFAULTS = {
     volume: 1, rate: 0.9, effects: true, name: '',
     countMax: 30, letters: 'simple', timeLimit: 0,
-    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true }
+    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true }
   };
   const saved = store.get('settings', {});
   const settings = Object.assign({}, DEFAULTS, saved, { games: Object.assign({}, DEFAULTS.games, saved.games || {}) });
@@ -183,8 +183,20 @@
       }
     },
     compter: {
-      name: 'Compter', intro: 'On compte !', icon: '🍓', color: '#EF4F6C', rounds: 3, counting: true,
+      name: 'Compter', intro: 'On compte !', icon: '🍓', color: '#EF4F6C', rounds: 3, counting: true, full: true,
       make(G) { return { custom: countQuestion }; }
+    },
+    memory: {
+      name: 'Memory princesse', intro: 'Le memory des princesses !', icon: '👑', color: '#D85FA8', rounds: 1, full: true,
+      make(G) { return { custom: memoryGame }; }
+    },
+    puzzle: {
+      name: 'Puzzles', intro: 'Les puzzles !', icon: '🧩', color: '#2BA7A0', rounds: 1, full: true,
+      make(G) { return { custom: puzzleGame }; }
+    },
+    lire: {
+      name: 'Lire', intro: 'On lit les mots !', icon: '📖', color: '#E07A2E', rounds: 4, full: true,
+      make(G) { return { custom: readGame }; }
     },
     couleurs: {
       name: 'Couleurs', intro: 'Les couleurs !', icon: '🎨', color: '#8E44C9', rounds: 5,
@@ -240,7 +252,7 @@
       }
     }
   };
-  const ORDER = ['potager', 'compter', 'couleurs', 'lettres', 'animaux'];
+  const ORDER = ['potager', 'compter', 'couleurs', 'lettres', 'animaux', 'memory', 'puzzle', 'lire'];
 
   function letterPool() {
     const base = settings.letters === 'all' ? LETTERS : LETTERS.filter(x => SIMPLE_LETTERS.includes(x.l));
@@ -315,6 +327,283 @@
     }
   }
 
+  // ---------- Petit outil : une manche gagnée (jeux sans choix multiples) ----------
+  async function roundWon(f) {
+    sfx.good();
+    const dot = $$('.dot')[G.n];
+    if (dot) { dot.classList.add('on'); dot.textContent = '⭐'; }
+    await Promise.all([say(praise()), sleep(1000)]);
+    if (f !== G.flow) return;
+    G.n++;
+    nextQ();
+  }
+
+  // ---------- Memory princesse ----------
+  const PRINCESS = [
+    { e: '👸', n: 'la princesse' }, { e: '👑', n: 'la couronne' }, { e: '🏰', n: 'le château' },
+    { e: '🦄', n: 'la licorne' }, { e: '💎', n: 'le diamant' }, { e: '🧚', n: 'la fée' },
+    { e: '🪄', n: 'la baguette magique' }, { e: '🌹', n: 'la rose' }, { e: '🎀', n: 'le nœud' },
+    { e: '🐸', n: 'la grenouille' }, { e: '👗', n: 'la robe' }, { e: '🪞', n: 'le miroir' }
+  ];
+  const memoryPairs = () => { const w = store.get('memoryWins', 0); return w < 2 ? 3 : w < 5 ? 4 : 6; };
+  function memoryGame(G, f) {
+    const pairs = memoryPairs();
+    const set = shuffle(PRINCESS).slice(0, pairs);
+    const deck = shuffle([...set, ...set]);
+    const grid = el('div', 'mgrid');
+    grid.style.setProperty('--cols', pairs === 6 ? 3 : 2);
+    grid.style.setProperty('--rows', pairs === 6 ? 4 : pairs);
+    let open = [], found = 0, busy = false;
+    deck.forEach((it, i) => {
+      const c = el('button', 'mcard', `<span class="mface mback"></span><span class="mface mfront">${it.e}</span>`);
+      c.setAttribute('aria-label', 'carte');
+      c.style.animationDelay = (i * 50) + 'ms';
+      c.onclick = async () => {
+        if (f !== G.flow || busy || c.classList.contains('open')) return;
+        audio(); sfx.tap();
+        c.classList.add('open');
+        open.push({ c, it });
+        say(cap(it.n));
+        if (open.length < 2) return;
+        busy = true;
+        const [a, b] = open; open = [];
+        if (a.it === b.it) {
+          await sleep(500);
+          a.c.classList.add('found'); b.c.classList.add('found');
+          sfx.good(); found++;
+          await say(`${praise()} Deux fois ${it.n} !`);
+          busy = false;
+          if (found === pairs && f === G.flow) { await sleep(300); G.n = G.total; nextQ(); }
+        } else {
+          await sleep(1400);
+          a.c.classList.remove('open'); b.c.classList.remove('open');
+          busy = false;
+        }
+      };
+      grid.append(c);
+    });
+    $('#stage').append(grid);
+    G.prompt = 'Retourne les cartes, et trouve deux images pareilles !';
+    $('#caption').textContent = 'Trouve les paires';
+    say(G.prompt);
+  }
+
+  // ---------- Puzzles ----------
+  const PUZZLES = [
+    { e: '🏰', n: 'le château', bg: '#FFD6E8' }, { e: '🦄', n: 'la licorne', bg: '#E6DBFF' },
+    { e: '🚜', n: 'le tracteur', bg: '#D8F3D0' }, { e: '🐱', n: 'le chat', bg: '#FFE9C7' },
+    { e: '🦋', n: 'le papillon', bg: '#D7EEFF' }, { e: '🚀', n: 'la fusée', bg: '#DDE3FF' },
+    { e: '🐢', n: 'la tortue', bg: '#D2F2EA' }, { e: '🍓', n: 'la fraise', bg: '#FFE0E0' }
+  ];
+  const puzzleGrid = () => { const w = store.get('puzzleWins', 0); return w < 2 ? [1, 2] : w < 5 ? [2, 2] : w < 9 ? [3, 2] : [3, 3]; };
+  function puzzleGame(G, f) {
+    const stage = $('#stage');
+    const grid = el('div', 'pzpick');
+    PUZZLES.forEach((p, i) => {
+      const b = el('button', 'pzthumb', p.e);
+      b.style.setProperty('--bg', p.bg);
+      b.style.animationDelay = (i * 50) + 'ms';
+      b.setAttribute('aria-label', p.n);
+      b.onclick = () => {
+        if (f !== G.flow) return;
+        audio(); sfx.tap();
+        stage.innerHTML = '';
+        buildPuzzle(G, f, p);
+      };
+      grid.append(b);
+    });
+    stage.append(grid);
+    G.prompt = 'Choisis ton puzzle !';
+    $('#caption').textContent = 'Choisis ton puzzle';
+    say(G.prompt);
+  }
+  function puzzleImage(p, S) {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = S;
+    const x = cv.getContext('2d');
+    x.fillStyle = p.bg; x.fillRect(0, 0, S, S);
+    x.fillStyle = 'rgba(255,255,255,.55)';
+    x.beginPath(); x.arc(S / 2, S / 2, S * 0.42, 0, Math.PI * 2); x.fill();
+    x.fillStyle = 'rgba(255,255,255,.8)';
+    [[.12, .14, .03], [.86, .18, .025], [.1, .84, .02], [.88, .86, .03], [.5, .07, .015]].forEach(([a, b, r]) => { x.beginPath(); x.arc(a * S, b * S, r * S, 0, Math.PI * 2); x.fill(); });
+    x.font = `${Math.round(S * 0.6)}px "Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif`;
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText(p.e, S / 2, S * 0.54);
+    return cv.toDataURL('image/png');
+  }
+  function buildPuzzle(G, f, p) {
+    const [cols, rows] = puzzleGrid();
+    const n = cols * rows;
+    const box = el('div', 'pz');
+    $('#stage').append(box);
+    const W = box.clientWidth, H = box.clientHeight;
+    const B = Math.floor(Math.min(W, H * 0.56, 380));
+    const pw = B / cols, ph = B / rows;
+    const bx = Math.round((W - B) / 2), by = 0;
+    const url = puzzleImage(p, 600);
+
+    const board = el('div', 'pzboard');
+    Object.assign(board.style, { left: bx + 'px', top: by + 'px', width: B + 'px', height: B + 'px' });
+    board.style.setProperty('--img', `url(${url})`);
+    box.append(board);
+    for (let i = 0; i < n; i++) {
+      const sl = el('div', 'pzslot');
+      Object.assign(sl.style, { left: (i % cols) * pw + 'px', top: Math.floor(i / cols) * ph + 'px', width: pw + 'px', height: ph + 'px' });
+      board.append(sl);
+    }
+
+    // le plateau du bas : les morceaux mélangés, réduits si besoin
+    const trayTop = B + 18, trayH = Math.max(60, H - trayTop);
+    const perLine = n <= 3 ? n : Math.ceil(n / 2), lines = n <= 3 ? 1 : 2, gap = 12;
+    const s = Math.min(1, (W - gap * (perLine - 1)) / (perLine * pw), (trayH - gap * (lines - 1)) / (lines * ph));
+    const offY = Math.max(0, (trayH - lines * ph * s - gap * (lines - 1)) / 2);
+    const order = shuffle([...Array(n).keys()]);
+    let placed = 0;
+
+    const place = (P, pos, sc) => { P.el.style.left = pos.x + 'px'; P.el.style.top = pos.y + 'px'; P.el.style.transform = `scale(${sc})`; };
+
+    for (let i = 0; i < n; i++) {
+      const c = i % cols, r = Math.floor(i / cols);
+      const pc = el('div', 'piece');
+      Object.assign(pc.style, {
+        width: pw + 'px', height: ph + 'px', backgroundImage: `url(${url})`,
+        backgroundSize: `${B}px ${B}px`, backgroundPosition: `${-c * pw}px ${-r * ph}px`,
+        animationDelay: (i * 80) + 'ms'
+      });
+      const k = order[i], line = Math.floor(k / perLine), col = k % perLine;
+      const inLine = line === 0 ? Math.min(perLine, n) : n - perLine;
+      const lineW = inLine * pw * s + gap * (inLine - 1);
+      const P = {
+        el: pc, done: false, misses: 0,
+        home: { x: (W - lineW) / 2 + col * (pw * s + gap), y: trayTop + offY + line * (ph * s + gap) },
+        target: { x: bx + c * pw, y: by + r * ph }
+      };
+      place(P, P.home, s);
+      bindDrag(P);
+      box.append(pc);
+    }
+
+    function bindDrag(P) {
+      let ox = 0, oy = 0, rect = null, sx = 0, sy = 0, moved = false;
+      P.el.addEventListener('pointerdown', e => {
+        if (P.done || f !== G.flow) return;
+        e.preventDefault(); audio();
+        try { P.el.setPointerCapture(e.pointerId); } catch (err) { /* rien */ }
+        rect = box.getBoundingClientRect();
+        const pr = P.el.getBoundingClientRect();
+        ox = (e.clientX - pr.left) / pr.width * pw;
+        oy = (e.clientY - pr.top) / pr.height * ph;
+        sx = e.clientX; sy = e.clientY; moved = false;
+        P.el.classList.add('drag');
+        move(e);
+      });
+      const move = e => {
+        if (!P.el.classList.contains('drag')) return;
+        if (Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) > 10) moved = true;
+        place(P, { x: e.clientX - rect.left - ox, y: e.clientY - rect.top - oy }, 1);
+      };
+      P.el.addEventListener('pointermove', move);
+      const up = () => {
+        if (!P.el.classList.contains('drag')) return;
+        P.el.classList.remove('drag');
+        const x = parseFloat(P.el.style.left), y = parseFloat(P.el.style.top);
+        if (Math.hypot(x - P.target.x, y - P.target.y) < Math.max(40, Math.min(pw, ph) * 0.42)) {
+          P.done = true;
+          place(P, P.target, 1);
+          P.el.classList.add('placed');
+          sfx.good(); placed++;
+          if (placed === n) win(); else say(pick(['Oui !', 'Bravo !', 'Super !', 'Bien joué !']));
+        } else {
+          place(P, P.home, s);
+          if (!moved) say('Fais glisser le morceau avec ton doigt !');
+          else if (++P.misses >= 2) hint(P);
+        }
+      };
+      P.el.addEventListener('pointerup', up);
+      P.el.addEventListener('pointercancel', up);
+    }
+    function hint(P) {
+      const g = el('div', 'pzhint');
+      Object.assign(g.style, { left: P.target.x + 'px', top: P.target.y + 'px', width: pw + 'px', height: ph + 'px' });
+      box.append(g);
+      setTimeout(() => g.remove(), 1800);
+      say('Regarde, il va ici !');
+    }
+    async function win() {
+      board.classList.add('complete');
+      await sleep(400);
+      await say(`Bravo ! C'est ${p.n} !`);
+      if (f === G.flow) { G.n = G.total; nextQ(); }
+    }
+    G.prompt = n === 2 ? 'Remets les deux morceaux à leur place !' : 'Remets les morceaux à leur place !';
+    $('#caption').textContent = 'Fais glisser les morceaux';
+    say(G.prompt);
+  }
+
+  // ---------- Lire : les syllabes, une par une ----------
+  // s = ce qui est écrit, say = ce que la voix prononce, word = le mot entier
+  const WORDS = [
+    { w: 'LAPIN', e: '🐰', s: ['LA', 'PIN'], say: ['la', 'pin'], word: 'lapin' },
+    { w: 'MOTO', e: '🏍️', s: ['MO', 'TO'], say: ['mo', 'to'], word: 'moto' },
+    { w: 'VÉLO', e: '🚲', s: ['VÉ', 'LO'], say: ['vé', 'lo'], word: 'vélo' },
+    { w: 'LUNE', e: '🌙', s: ['LU', 'NE'], say: ['lu', 'neu'], word: 'lune' },
+    { w: 'BANANE', e: '🍌', s: ['BA', 'NA', 'NE'], say: ['ba', 'na', 'neu'], word: 'banane' },
+    { w: 'TOMATE', e: '🍅', s: ['TO', 'MA', 'TE'], say: ['to', 'ma', 'teu'], word: 'tomate' },
+    { w: 'ROBOT', e: '🤖', s: ['RO', 'BOT'], say: ['ro', 'bo'], word: 'robot' },
+    { w: 'CANARD', e: '🦆', s: ['CA', 'NARD'], say: ['ca', 'nar'], word: 'canard' },
+    { w: 'SAPIN', e: '🎄', s: ['SA', 'PIN'], say: ['sa', 'pin'], word: 'sapin' },
+    { w: 'BÉBÉ', e: '👶', s: ['BÉ', 'BÉ'], say: ['bé', 'bé'], word: 'bébé' },
+    { w: 'LAMA', e: '🦙', s: ['LA', 'MA'], say: ['la', 'ma'], word: 'lama' },
+    { w: 'KIWI', e: '🥝', s: ['KI', 'WI'], say: ['ki', 'oui'], word: 'kiwi' },
+    { w: 'CADEAU', e: '🎁', s: ['CA', 'DEAU'], say: ['ca', 'do'], word: 'cadeau' },
+    { w: 'TORTUE', e: '🐢', s: ['TOR', 'TUE'], say: ['tor', 'tu'], word: 'tortue' },
+    { w: 'MAISON', e: '🏠', s: ['MAI', 'SON'], say: ['mè', 'zon'], word: 'maison' },
+    { w: 'PIRATE', e: '🏴‍☠️', s: ['PI', 'RA', 'TE'], say: ['pi', 'ra', 'teu'], word: 'pirate' }
+  ];
+  function readGame(G, f) {
+    const it = pickNew(WORDS, G, x => x.w);
+    const pic = el('button', 'rpic', it.e);
+    pic.setAttribute('aria-label', 'Écouter le mot');
+    pic.onclick = () => { audio(); say(it.word); };
+    const row = el('div', 'syl');
+    let k = 0;
+    const blocks = it.s.map((sy, i) => {
+      const b = el('button', 'sy' + (i % 2 ? ' alt' : ''), sy);
+      b.style.animationDelay = (i * 90) + 'ms';
+      b.onclick = () => {
+        if (f !== G.flow) return;
+        audio();
+        if (i < k) { say(it.say[i]); return; }
+        if (i !== k) {
+          const nb = blocks[k];
+          nb.classList.remove('next'); void nb.offsetWidth; nb.classList.add('next');
+          say(k === 0 ? 'On commence par ici !' : 'Celle-là, juste à côté !');
+          return;
+        }
+        b.classList.remove('next'); b.classList.add('lit');
+        sfx.count(k + 1);
+        k++;
+        say(it.say[i]);
+        if (k < blocks.length) blocks[k].classList.add('next'); else done();
+      };
+      row.append(b);
+      return b;
+    });
+    blocks[0].classList.add('next');
+    $('#stage').append(pic, row);
+    G.prompt = G.n === 0 ? 'Touche les morceaux du mot, un par un, pour le lire !' : 'Lis le mot, morceau par morceau !';
+    $('#caption').textContent = 'Touche les morceaux du mot';
+    say(G.prompt);
+    async function done() {
+      await sleep(700);
+      if (f !== G.flow) return;
+      row.classList.add('whole'); pic.classList.add('happy');
+      await say(`${it.say.join(', ')} : ${it.word} !`);
+      if (f !== G.flow) return;
+      roundWon(f);
+    }
+  }
+
   // ---------- Écrans ----------
   let screen = 'start';
   function show(id) {
@@ -355,7 +644,8 @@
   function startGame(id) {
     const def = GAMES[id];
     G = { id, def, n: 0, total: def.rounds, used: new Set(), usedN: new Set(), flow: 0, lock: false };
-    $('#game').classList.toggle('counting', !!def.counting);
+    $('#game').classList.toggle('counting', !!def.full);
+    $('#game').classList.toggle('solo', def.rounds === 1);
     const prog = $('#progress'); prog.innerHTML = '';
     for (let i = 0; i < G.total; i++) prog.append(el('span', 'dot'));
     show('game');
@@ -415,13 +705,15 @@
 
   function finish() {
     if (G.def.counting) store.set('countLevel', Math.min(settings.countMax, countLevel() + 2));
+    if (G.id === 'memory') store.set('memoryWins', store.get('memoryWins', 0) + 1);
+    if (G.id === 'puzzle') store.set('puzzleWins', store.get('puzzleWins', 0) + 1);
     releaseAwake();
     if (pendingRest || limitReached()) { goRest(); return; }
     show('end');
     sfx.fanfare();
     confetti();
     const who = settings.name ? ' ' + settings.name : '';
-    say(`Bravo${who} ! Tu as gagné ${G.total} étoiles ! On rejoue ?`);
+    say(G.total === 1 ? `Bravo${who} ! Tu as réussi ! On rejoue ?` : `Bravo${who} ! Tu as gagné ${G.total} étoiles ! On rejoue ?`);
   }
 
   // ---------- Confettis ----------
@@ -533,6 +825,8 @@
     $('#voice-info').textContent = !hasTTS ? 'Voix indisponible sur ce navigateur'
       : frVoice ? `Voix : ${frVoice.name}` : 'Aucune voix française trouvée (voir l\'aide)';
     $('#count-level').textContent = `Niveau actuel : jusqu'à ${countLevel()}`;
+    const [pc, pr] = puzzleGrid();
+    $('#levels-info').textContent = `Memory : ${memoryPairs()} paires · Puzzles : ${pc * pr} morceaux`;
     freshUsage();
     const min = Math.floor(usage.sec / 60);
     $('#usage-info').textContent = `Joué aujourd'hui : ${min} min` + (usage.extra ? ` (bonus +${usage.extra} min)` : '');
@@ -546,6 +840,7 @@
   $('#set-limit').onchange = e => { settings.timeLimit = +e.target.value; saveSettings(); refreshParentInfo(); };
   $('#btn-test-voice').onclick = () => { audio(); sfx.good(); say(settings.name ? `Bonjour ${settings.name} ! Où est la carotte ?` : 'Bonjour ! Où est la carotte ?'); };
   $('#btn-count-reset').onclick = () => { store.set('countLevel', 5); refreshParentInfo(); };
+  $('#btn-levels-reset').onclick = () => { store.set('memoryWins', 0); store.set('puzzleWins', 0); refreshParentInfo(); };
   $('#btn-extra').onclick = () => { freshUsage(); usage.extra += 10; store.set('usage', usage); refreshParentInfo(); };
   $('#btn-parent-close').onclick = () => { saveSettings(); goHome(false); };
 

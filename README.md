@@ -12,14 +12,17 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | 🎨 Couleurs | « Où est le rouge ? » : 11 couleurs |
 | 🔤 Lettres | « Où est la lettre B ? B comme ballon » : majuscules, lettres simples d'abord, celles du prénom en priorité |
 | 🐮 Animaux | « Qui fait meuh ? » |
+| 👑 Memory princesse | Retourner les cartes pour trouver les paires : 3 paires au début, puis 4, puis 6 |
+| 🧩 Puzzles | Choisir une image (château, licorne, tracteur…) et faire glisser les morceaux : 2 morceaux au début, puis 4, 6 et 9 |
+| 📖 Lire | Toucher les syllabes une par une (LA · PIN), la voix les lit, puis lit le mot entier. Syllabes en bleu et rouge, comme à l'école |
 
-Une partie = 5 questions (3 pour Compter), puis des confettis.
+Une partie = 5 questions (3 pour Compter, 4 mots pour Lire, une grille pour Memory et Puzzles), puis des confettis.
 En cas d'erreur, l'image se grise et la voix dit ce que c'était (« Ça, c'est le brocoli. Où est la carotte ? ») : l'enfant finit toujours par trouver.
 
 ## Coin des parents
 
 Appui long (2 secondes) sur la petite roue en haut à droite de l'écran des jeux.
-Réglages : volume, vitesse de la voix, bruitages, prénom, jeux affichés, « compter jusqu'à », lettres simples ou tout l'alphabet, limite de temps d'écran par jour (avec « +10 min aujourd'hui »).
+Réglages : volume, vitesse de la voix, bruitages, prénom, jeux affichés, « compter jusqu'à », lettres simples ou tout l'alphabet, retour au niveau facile pour Memory et Puzzles, limite de temps d'écran par jour (avec « +10 min aujourd'hui »).
 Tout est enregistré sur le téléphone uniquement.
 
 ## Mettre en ligne (GitHub Pages)
@@ -39,7 +42,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v1` → `v2`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v2` → `v3`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique
