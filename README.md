@@ -12,8 +12,8 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | 🎨 Couleurs | « Où est le rouge ? » : 11 couleurs |
 | 🔤 Lettres | « Où est la lettre B ? B comme ballon » : majuscules, lettres simples d'abord, celles du prénom en priorité |
 | 🐮 Animaux | « Qui fait meuh ? » |
-| 👑 Memory princesse | Retourner les cartes pour trouver les paires : 3 paires au début, puis 4, puis 6 |
-| 🧩 Puzzles | Choisir une image (château, licorne, tracteur…) et faire glisser les morceaux : 2 morceaux au début, puis 4, 6 et 9 |
+| 👑 Memory princesse | Retourner les cartes pour trouver les paires : 3 paires au début, puis une de plus à chaque grille réussie (jusqu'à 6). Bouton « Suivant » à la fin |
+| 🧩 Puzzles | Choisir une image (château, licorne, tracteur…) et faire glisser les morceaux : 2 morceaux au début, puis 4, 6 et 9 à chaque puzzle réussi. Bouton « Suivant » : image suivante, un peu plus difficile |
 | 📖 Lire | Toucher les syllabes une par une (LA · PIN), la voix les lit, puis lit le mot entier. Syllabes en bleu et rouge, comme à l'école |
 
 Une partie = 5 questions (3 pour Compter, 4 mots pour Lire, une grille pour Memory et Puzzles), puis des confettis.
@@ -42,7 +42,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v2` → `v3`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v3` → `v4`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique

@@ -345,7 +345,8 @@
     { e: '🪄', n: 'la baguette magique' }, { e: '🌹', n: 'la rose' }, { e: '🎀', n: 'le nœud' },
     { e: '🐸', n: 'la grenouille' }, { e: '👗', n: 'la robe' }, { e: '🪞', n: 'le miroir' }
   ];
-  const memoryPairs = () => { const w = store.get('memoryWins', 0); return w < 2 ? 3 : w < 5 ? 4 : 6; };
+  const MEMORY_LEVELS = [3, 4, 5, 6];
+  const memoryPairs = () => MEMORY_LEVELS[Math.min(store.get('memoryWins', 0), MEMORY_LEVELS.length - 1)];
   function memoryGame(G, f) {
     const pairs = memoryPairs();
     const set = shuffle(PRINCESS).slice(0, pairs);
@@ -383,7 +384,7 @@
       grid.append(c);
     });
     $('#stage').append(grid);
-    G.prompt = 'Retourne les cartes, et trouve deux images pareilles !';
+    G.prompt = (G.opts.harder ? 'Encore plus de cartes ! ' : '') + 'Retourne les cartes, et trouve deux images pareilles !';
     $('#caption').textContent = 'Trouve les paires';
     say(G.prompt);
   }
@@ -395,9 +396,16 @@
     { e: '🦋', n: 'le papillon', bg: '#D7EEFF' }, { e: '🚀', n: 'la fusée', bg: '#DDE3FF' },
     { e: '🐢', n: 'la tortue', bg: '#D2F2EA' }, { e: '🍓', n: 'la fraise', bg: '#FFE0E0' }
   ];
-  const puzzleGrid = () => { const w = store.get('puzzleWins', 0); return w < 2 ? [1, 2] : w < 5 ? [2, 2] : w < 9 ? [3, 2] : [3, 3]; };
+  const PUZZLE_LEVELS = [[1, 2], [2, 2], [3, 2], [3, 3]];
+  const puzzleGrid = () => PUZZLE_LEVELS[Math.min(store.get('puzzleWins', 0), PUZZLE_LEVELS.length - 1)];
   function puzzleGame(G, f) {
     const stage = $('#stage');
+    if (G.opts.next) { // « Suivant » : image suivante, sans repasser par le choix
+      const i = (store.get('lastPuzzle', -1) + 1) % PUZZLES.length;
+      store.set('lastPuzzle', i);
+      buildPuzzle(G, f, PUZZLES[i]);
+      return;
+    }
     const grid = el('div', 'pzpick');
     PUZZLES.forEach((p, i) => {
       const b = el('button', 'pzthumb', p.e);
@@ -408,6 +416,7 @@
         if (f !== G.flow) return;
         audio(); sfx.tap();
         stage.innerHTML = '';
+        store.set('lastPuzzle', i);
         buildPuzzle(G, f, p);
       };
       grid.append(b);
@@ -535,7 +544,7 @@
       await say(`Bravo ! C'est ${p.n} !`);
       if (f === G.flow) { G.n = G.total; nextQ(); }
     }
-    G.prompt = n === 2 ? 'Remets les deux morceaux à leur place !' : 'Remets les morceaux à leur place !';
+    G.prompt = (G.opts.harder ? 'Encore plus de morceaux ! ' : '') + (n === 2 ? 'Remets les deux morceaux à leur place !' : 'Remets les morceaux à leur place !');
     $('#caption').textContent = 'Fais glisser les morceaux';
     say(G.prompt);
   }
@@ -641,9 +650,9 @@
 
   // ---------- Déroulement d'une partie ----------
   let G = null;
-  function startGame(id) {
+  function startGame(id, opts = {}) {
     const def = GAMES[id];
-    G = { id, def, n: 0, total: def.rounds, used: new Set(), usedN: new Set(), flow: 0, lock: false };
+    G = { id, def, opts, n: 0, total: def.rounds, used: new Set(), usedN: new Set(), flow: 0, lock: false };
     $('#game').classList.toggle('counting', !!def.full);
     $('#game').classList.toggle('solo', def.rounds === 1);
     const prog = $('#progress'); prog.innerHTML = '';
@@ -705,15 +714,18 @@
 
   function finish() {
     if (G.def.counting) store.set('countLevel', Math.min(settings.countMax, countLevel() + 2));
-    if (G.id === 'memory') store.set('memoryWins', store.get('memoryWins', 0) + 1);
-    if (G.id === 'puzzle') store.set('puzzleWins', store.get('puzzleWins', 0) + 1);
+    if (G.id === 'memory') { const w = store.get('memoryWins', 0); G.leveledUp = w < MEMORY_LEVELS.length - 1; store.set('memoryWins', w + 1); }
+    if (G.id === 'puzzle') { const w = store.get('puzzleWins', 0); G.leveledUp = w < PUZZLE_LEVELS.length - 1; store.set('puzzleWins', w + 1); }
     releaseAwake();
     if (pendingRest || limitReached()) { goRest(); return; }
     show('end');
     sfx.fanfare();
     confetti();
     const who = settings.name ? ' ' + settings.name : '';
-    say(G.total === 1 ? `Bravo${who} ! Tu as réussi ! On rejoue ?` : `Bravo${who} ! Tu as gagné ${G.total} étoiles ! On rejoue ?`);
+    const solo = G.total === 1;
+    $('#btn-next').hidden = !solo;
+    $('#btn-again').hidden = solo;
+    say(solo ? `Bravo${who} ! Tu as réussi ! On passe au suivant ?` : `Bravo${who} ! Tu as gagné ${G.total} étoiles ! On rejoue ?`);
   }
 
   // ---------- Confettis ----------
@@ -854,6 +866,7 @@
   $('#btn-home').onclick = () => { sfx.tap(); goHome(); };
   $('#btn-repeat').onclick = repeat;
   $('#btn-again').onclick = () => { sfx.tap(); startGame(G.id); };
+  $('#btn-next').onclick = () => { sfx.tap(); startGame(G.id, { next: true, harder: !!G.leveledUp }); };
   $('#btn-end-home').onclick = () => { sfx.tap(); goHome(); };
 
   // ---------- Hors connexion ----------
