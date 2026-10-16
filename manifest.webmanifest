@@ -1,0 +1,17 @@
+{
+  "name": "Mon petit jeu",
+  "short_name": "Petit jeu",
+  "description": "Petits jeux éducatifs pour les tout-petits, avec consignes à l'oral.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EAF7FF",
+  "theme_color": "#BFE6FF",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

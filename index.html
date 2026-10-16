@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Mon petit jeu</title>
+<meta name="description" content="Petits jeux éducatifs pour les tout-petits : fruits et légumes, compter, couleurs, lettres, animaux.">
+<meta name="theme-color" content="#BFE6FF">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@600;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!--BODY-->
+<div id="start" class="screen start">
+  <div class="start-wrap">
+    <div class="garden" aria-hidden="true"><span>🥕</span><span>🍓</span><span>🐞</span><span>🌻</span></div>
+    <h1 class="brand">Mon petit jeu</h1>
+    <button id="btn-start" class="big-play" aria-label="Jouer">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.6-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
+    </button>
+  </div>
+</div>
+
+<div id="home" class="screen" hidden>
+  <header class="home-head">
+    <h1 class="brand small">Mon petit jeu</h1>
+    <button class="gear" data-hold aria-label="Coin des parents (appui long)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.4 7.4 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1c.5.4 1.1.7 1.7 1l.3 2.5h4l.4-2.5c.6-.3 1.2-.6 1.7-1l2.4 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg>
+    </button>
+  </header>
+  <div id="tiles" class="tiles"></div>
+  <p class="parent-hint">Parents : appui long sur la roue pour les réglages</p>
+</div>
+
+<div id="game" class="screen" hidden>
+  <header class="bar">
+    <button id="btn-home" class="round" aria-label="Retour aux jeux">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11.2 12 4l8.5 7.2V20a1 1 0 0 1-1 1H15v-5.5h-6V21H4.5a1 1 0 0 1-1-1z"/></svg>
+    </button>
+    <div id="progress" class="progress" aria-label="Progression"></div>
+    <button id="btn-repeat" class="round accent" aria-label="Répéter la consigne">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path class="stroke" d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12"/></svg>
+    </button>
+  </header>
+  <div id="stage" class="stage"></div>
+  <p id="caption" class="caption"></p>
+  <div id="choices" class="choices"></div>
+</div>
+
+<div id="end" class="screen end" hidden>
+  <div class="end-wrap">
+    <div class="big-star" aria-hidden="true">⭐</div>
+    <p class="end-title">Bravo !</p>
+    <div class="end-actions">
+      <button id="btn-again" class="pill sun" aria-label="Rejouer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M12 5a7 7 0 1 1-6.6 4.7"/><path d="M3 4.5 5 10l5.3-2.4z"/></svg>
+      </button>
+      <button id="btn-end-home" class="pill leaf" aria-label="Autre jeu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11.2 12 4l8.5 7.2V20a1 1 0 0 1-1 1H15v-5.5h-6V21H4.5a1 1 0 0 1-1-1z"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="rest" class="screen rest" hidden>
+  <div class="end-wrap">
+    <div class="moon" aria-hidden="true">🌙</div>
+    <p class="end-title">C'est la pause !</p>
+    <p class="rest-sub">À tout à l'heure 👋</p>
+  </div>
+  <button class="gear rest-gear" data-hold aria-label="Coin des parents (appui long)">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.4 7.4 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1c.5.4 1.1.7 1.7 1l.3 2.5h4l.4-2.5c.6-.3 1.2-.6 1.7-1l2.4 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg>
+  </button>
+</div>
+
+<div id="parent" class="screen parent" hidden>
+  <div class="parent-scroll">
+    <header class="parent-head">
+      <h2>Coin des parents</h2>
+      <button id="btn-parent-close" class="pill-text">Fermer</button>
+    </header>
+
+    <section class="pgroup">
+      <h3>Voix et sons</h3>
+      <label class="row" for="set-volume"><span>Volume</span><input id="set-volume" type="range" min="0.2" max="1" step="0.1"></label>
+      <label class="row" for="set-rate"><span>Vitesse de la voix</span><input id="set-rate" type="range" min="0.6" max="1.2" step="0.05"></label>
+      <label class="row" for="set-effects"><span>Bruitages</span><input id="set-effects" type="checkbox" class="switch"></label>
+      <div class="row"><span id="voice-info" class="muted"></span><button id="btn-test-voice" class="pill-text">Tester</button></div>
+    </section>
+
+    <section class="pgroup">
+      <h3>Enfant</h3>
+      <label class="row" for="set-name"><span>Prénom <small>(facultatif)</small></span><input id="set-name" type="text" maxlength="20" autocomplete="off" placeholder="ex. Léa"></label>
+      <p class="muted">Le prénom sert aux félicitations, et ses lettres passent en premier dans le jeu des lettres.</p>
+    </section>
+
+    <section class="pgroup">
+      <h3>Jeux</h3>
+      <div id="set-games" class="games-list"></div>
+      <label class="row" for="set-countmax"><span>Compter jusqu'à</span>
+        <select id="set-countmax"><option value="5">5</option><option value="10">10</option><option value="20">20</option><option value="30">30</option></select>
+      </label>
+      <div class="row"><span id="count-level" class="muted"></span><button id="btn-count-reset" class="pill-text">Recommencer à 5</button></div>
+      <label class="row" for="set-letters"><span>Lettres</span>
+        <select id="set-letters"><option value="simple">Les plus simples</option><option value="all">Tout l'alphabet</option></select>
+      </label>
+    </section>
+
+    <section class="pgroup">
+      <h3>Temps d'écran</h3>
+      <label class="row" for="set-limit"><span>Limite par jour</span>
+        <select id="set-limit"><option value="0">Sans limite</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="30">30 min</option><option value="45">45 min</option></select>
+      </label>
+      <div class="row"><span id="usage-info" class="muted"></span><button id="btn-extra" class="pill-text">+10 min aujourd'hui</button></div>
+    </section>
+
+    <p class="muted foot">Sans publicité, sans compte. Tout reste sur ce téléphone.</p>
+  </div>
+</div>
+
+<canvas id="confetti" aria-hidden="true"></canvas>
+<!--/BODY-->
+<script src="app.js"></script>
+</body>
+</html>
