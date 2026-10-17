@@ -210,18 +210,20 @@
       }
     },
     tailles: {
-      name: 'Grand et petit', intro: 'Le plus grand, le plus petit !', icon: '🐘', color: '#7A5BD6', rounds: 5,
+      name: 'Grand, moyen, petit', intro: 'Grand, moyen, petit !', icon: '🐘', color: '#7A5BD6', rounds: 5,
       make(G) {
         const e = pickNew(SIZE_ITEMS, G, x => x);
-        const big = G.n % 2 === 0;
-        const want = big ? 'le plus grand' : 'le plus petit';
-        const target = big ? 'grand' : 'petit';
+        // grand, petit, moyen à tour de rôle (le moyen est le plus difficile, il arrive en 3e)
+        const target = ['grand', 'petit', 'moyen'][G.n % 3];
+        const NAME = { grand: 'le plus grand', petit: 'le plus petit', moyen: 'le moyen' };
+        const want = NAME[target];
         const sizes = [{ s: 0.36, k: 'petit' }, { s: 0.64, k: 'moyen' }, { s: 1, k: 'grand' }];
         return {
-          prompt: `Touche ${want} !`, success: `C'est ${want} !`, row: true, cls: 'sizes',
+          prompt: target === 'moyen' ? 'Touche le moyen ! Pas le plus grand, pas le plus petit : celui du milieu.' : `Touche ${want} !`,
+          caption: `Touche ${want} !`, success: `C'est ${want} !`, row: true, cls: 'sizes',
           choices: shuffle(sizes).map(z => ({
             html: `<span class="emo" style="transform:scale(${z.s})">${e}</span>`, label: z.k, correct: z.k === target,
-            wrong: z.k === 'moyen' ? `Celui-là est moyen. Cherche ${want} !` : `Celui-là, c'est ${z.k === 'grand' ? 'le plus grand' : 'le plus petit'} ! Cherche ${want} !`
+            wrong: `Celui-là, c'est ${NAME[z.k]} ! Cherche ${want} !`
           }))
         };
       }

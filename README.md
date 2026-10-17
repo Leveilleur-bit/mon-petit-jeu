@@ -17,7 +17,7 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | 📖 Lire | Toucher les syllabes une par une (LA · PIN), la voix les lit, puis lit le mot entier. Syllabes en bleu et rouge, comme à l'école |
 | ✏️ Mon prénom | Remettre les lettres du prénom dans l'ordre, puis tracer chaque lettre au doigt en partant du point vert (la voix montre d'abord le chemin). Le prénom se règle dans le coin des parents. On peut y ajouter d'autres prénoms (famille, copains) : ils deviennent des niveaux, du plus court au plus long, avec une étoile une fois réussis et un bouton « Suivant » |
 | 🔷 Formes | « Où est le triangle ? » : rond, carré, triangle, rectangle, étoile, cœur, losange |
-| 🐘 Grand et petit | Toucher le plus grand, puis le plus petit (en alternance) |
+| 🐘 Grand, moyen, petit | Toucher le plus grand, le plus petit, puis le moyen (à tour de rôle) |
 | 🦒 Les ombres | Retrouver l'ombre de l'animal ou de l'objet montré |
 | 🖍️ Coloriage | 5 dessins (maison, fleur, poisson, papillon, voiture) : choisir une couleur, toucher une zone. Bouton vert pour finir, « Suivant » pour le dessin d'après |
 | 🎵 Musique | Xylophone libre, ou 3 chansons guidées (la barre à toucher brille) : Au clair de la lune, Frère Jacques, Ah vous dirai-je maman |
@@ -52,7 +52,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v7` → `v8`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v8` → `v9`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique
