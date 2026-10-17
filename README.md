@@ -12,7 +12,7 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | 🎨 Couleurs | « Où est le rouge ? » : 11 couleurs |
 | 🔤 Lettres | « Où est la lettre B ? B comme ballon » : majuscules, lettres simples d'abord, celles du prénom en priorité |
 | 🐮 Animaux | « Qui fait meuh ? » |
-| 👑 Memory | Choisir ses cartes (princesses, animaux, mer, fruits, véhicules, gourmandises), puis retrouver les paires : 3 paires au début, puis une de plus à chaque grille réussie (jusqu'à 6). Bouton « Suivant » à la fin |
+| 👑 Memory | Choisir ses cartes (princesses, animaux, mer, fruits, véhicules, gourmandises), puis retrouver les paires : 3 paires au début, puis une de plus à chaque grille réussie (jusqu'à 6). Bouton « Suivant » à la fin. Après 5 parties d'affilée (réglable), le memory se repose jusqu'à ce que 3 autres jeux soient finis |
 | 🧩 Puzzles | Choisir une image (château, licorne, tracteur…) et faire glisser les morceaux : 2 morceaux au début, puis 4, 6 et 9 à chaque puzzle réussi. Bouton « Suivant » : image suivante, un peu plus difficile |
 | 📖 Lire | Toucher les syllabes une par une (LA · PIN), la voix les lit, puis lit le mot entier. Syllabes en bleu et rouge, comme à l'école |
 | ✏️ Mon prénom | Remettre les lettres du prénom dans l'ordre, puis tracer chaque lettre au doigt en partant du point vert (la voix montre d'abord le chemin). Le prénom se règle dans le coin des parents. On peut y ajouter d'autres prénoms (famille, copains) : ils deviennent des niveaux, du plus court au plus long, avec une étoile une fois réussis et un bouton « Suivant » |
@@ -21,6 +21,7 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | 🦒 Les ombres | Retrouver l'ombre de l'animal ou de l'objet montré |
 | 🖍️ Coloriage | 5 dessins (maison, fleur, poisson, papillon, voiture) : choisir une couleur, toucher une zone. Bouton vert pour finir, « Suivant » pour le dessin d'après |
 | 🎵 Musique | Xylophone libre, ou 3 chansons guidées (la barre à toucher brille) : Au clair de la lune, Frère Jacques, Ah vous dirai-je maman |
+| 🏁 Le fil | Trois animaux, trois fils emmêlés : suivre chaque fil au doigt depuis le point vert pour savoir qui arrive au drapeau. Fils de couleurs différentes au début, puis de la même couleur et plus emmêlés. Le bouton haut-parleur montre le chemin |
 
 **Accueil** : 9 jeux tirés au hasard à chaque ouverture de l'appli, en priorité ceux qui n'étaient pas affichés la fois précédente (réglable : « Tous les jeux »). Les jeux marqués ⭐ dans le coin des parents sont toujours affichés (Memory par défaut).
 
@@ -52,7 +53,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v8` → `v9`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v9` → `v10`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique

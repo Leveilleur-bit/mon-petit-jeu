@@ -482,6 +482,20 @@ svg path.stroke { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-li
 .fav { border: 0; background: none; font-size: 22px; width: 36px; height: 36px; border-radius: 50%; color: var(--ink-soft); flex: none; }
 .fav.on { background: #FFF3C4; }
 
+/* Le fil */
+.maze { position: relative; flex: 1; min-height: 0; width: 100%; max-width: 560px; margin: 0 auto; background: var(--card); border-radius: 24px; box-shadow: 0 6px 0 var(--card-edge); touch-action: none; overflow: hidden; }
+.maze canvas { position: absolute; inset: 0; touch-action: none; }
+
+/* Memory en pause */
+.tile { position: relative; }
+.tile.locked { background: #EEF2F8; }
+.tile.locked .emo { filter: grayscale(.85) opacity(.55); }
+.tile .zz { position: absolute; top: 8px; right: 10px; font-size: 26px; animation: bob 2.4s ease-in-out infinite; }
+.tile .lockdots { display: flex; gap: 6px; margin-top: 2px; }
+.tile .lockdots i { width: 12px; height: 12px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 2px var(--card-edge); }
+.tile .lockdots i.on { background: var(--grass); box-shadow: none; }
+.tile.nope { animation: wobble .5s; }
+
 /* ---------- Fin / pause ---------- */
 .big-star { font-size: clamp(110px, 32vw, 170px); line-height: 1; animation: star-in 1s cubic-bezier(.3, 1.6, .5, 1); }
 .end-title { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 52px; line-height: 1; }

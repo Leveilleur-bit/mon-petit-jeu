@@ -19,8 +19,8 @@
   // ---------- Réglages ----------
   const DEFAULTS = {
     volume: 1, rate: 0.9, effects: true, name: '', names: [],
-    countMax: 30, letters: 'simple', timeLimit: 0,
-    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true },
+    countMax: 30, letters: 'simple', timeLimit: 0, memLimit: 5,
+    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true, fil: true },
     homeMode: 'rotate', favs: ['memory']
   };
   const saved = store.get('settings', {});
@@ -253,6 +253,10 @@
       name: 'Musique', intro: 'La musique !', icon: '🎵', color: '#16A3A3', rounds: 1, full: true,
       make(G) { return { custom: musicGame }; }
     },
+    fil: {
+      name: 'Le fil', intro: 'Qui va gagner la course ?', icon: '🏁', color: '#2E8B57', rounds: 1, full: true,
+      make(G) { return { custom: mazeGame }; }
+    },
     prenom: {
       name: 'Mon prénom', intro: 'On écrit ton prénom !', icon: '✏️', color: '#2C7BE5', rounds: 1, full: true,
       make(G) { return { custom: nameGame }; }
@@ -315,7 +319,7 @@
       }
     }
   };
-  const ORDER = ['potager', 'compter', 'couleurs', 'lettres', 'animaux', 'memory', 'puzzle', 'lire', 'prenom', 'formes', 'tailles', 'ombres', 'coloriage', 'musique'];
+  const ORDER = ['potager', 'compter', 'couleurs', 'lettres', 'animaux', 'memory', 'puzzle', 'lire', 'prenom', 'formes', 'tailles', 'ombres', 'coloriage', 'musique', 'fil'];
 
   function letterPool() {
     const base = settings.letters === 'all' ? LETTERS : LETTERS.filter(x => SIMPLE_LETTERS.includes(x.l));
@@ -1371,6 +1375,202 @@
     d.addEventListener('pointercancel', up);
   }
 
+  // ---------- Le fil : suivre chaque fil au doigt pour savoir qui gagne la course ----------
+  const RACERS = [
+    { e: '🐰', n: 'le lapin' }, { e: '🐻', n: "l'ours" }, { e: '🦊', n: 'le renard' }, { e: '🐱', n: 'le chat' },
+    { e: '🐼', n: 'le panda' }, { e: '🐸', n: 'la grenouille' }, { e: '🐷', n: 'le cochon' }, { e: '🐧', n: 'le pingouin' },
+    { e: '🐨', n: 'le koala' }, { e: '🦁', n: 'le lion' }, { e: '🐭', n: 'la souris' }, { e: '🐶', n: 'le chien' }
+  ];
+  const DECOYS = [
+    { e: '🌲', n: 'au sapin' }, { e: '⛄', n: 'au bonhomme de neige' }, { e: '🍄', n: 'au champignon' },
+    { e: '🪨', n: 'au caillou' }, { e: '🌻', n: 'au tournesol' }, { e: '🏠', n: 'à la maison' }
+  ];
+  const FIL_COLORS = ['#E5484D', '#1E63D6', '#E8A400'];
+  const FIL_SAME = '#2E8B57';
+  const MAZE_LEVELS = [
+    { mids: 1, colors: true }, { mids: 2, colors: true }, { mids: 2, colors: false }, { mids: 3, colors: false }, { mids: 4, colors: false }
+  ];
+  const mazeLevel = () => MAZE_LEVELS[Math.min(store.get('mazeWins', 0), MAZE_LEVELS.length - 1)];
+
+  function catmull(pts, step) {
+    const P = [pts[0], ...pts, pts[pts.length - 1]], out = [];
+    for (let i = 1; i < P.length - 2; i++) {
+      const [p0, p1, p2, p3] = [P[i - 1], P[i], P[i + 1], P[i + 2]];
+      const len = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]), n = Math.max(2, Math.ceil(len / step));
+      for (let k = 0; k < n; k++) {
+        const t = k / n, t2 = t * t, t3 = t2 * t;
+        const f = (a, b, c, d) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+        out.push([f(p0[0], p1[0], p2[0], p3[0]), f(p0[1], p1[1], p2[1], p3[1])]);
+      }
+    }
+    out.push(pts[pts.length - 1]);
+    // ré-échantillonnage régulier
+    const res = [out[0]];
+    let acc = 0;
+    for (let i = 1; i < out.length; i++) {
+      const d = Math.hypot(out[i][0] - out[i - 1][0], out[i][1] - out[i - 1][1]);
+      acc += d;
+      if (acc >= step) { res.push(out[i]); acc = 0; }
+    }
+    res.push(out[out.length - 1]);
+    return res;
+  }
+
+  function mazeGame(G, f) {
+    const lvl = mazeLevel();
+    const wrap = el('div', 'maze');
+    $('#stage').append(wrap);
+    const W = wrap.clientWidth, H = wrap.clientHeight;
+    const cv = el('canvas');
+    wrap.append(cv);
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    const x = cv.getContext('2d');
+    x.scale(dpr, dpr);
+
+    const racers = shuffle(RACERS).slice(0, 3);
+    const decoys = shuffle(DECOYS).slice(0, 2);
+    const ends = shuffle([{ e: '🏁', n: "à l'arrivée", win: true }, ...decoys]);
+    const order = shuffle([0, 1, 2]);           // fil i -> arrivée order[i]
+    if (order.every((v, i) => v === i)) order.push(order.shift()); // jamais tout droit
+    const xs = [W * 0.18, W * 0.5, W * 0.82];
+    const topY = Math.min(70, H * 0.11), botY = H - Math.min(64, H * 0.1);
+    const y0 = topY + 34, y1 = botY - 34;
+    const paths = racers.map((r, i) => {
+      const way = [[xs[i], y0]];
+      for (let k = 1; k <= lvl.mids; k++) {
+        const yy = y0 + (y1 - y0) * (k / (lvl.mids + 1)) + (Math.random() - 0.5) * (y1 - y0) / (lvl.mids + 1) * 0.6;
+        way.push([W * (0.1 + Math.random() * 0.8), yy]);
+      }
+      way.push([xs[order[i]], y1]);
+      const pts = catmull(way, 4);
+      return { r, end: ends[order[i]], pts, color: lvl.colors ? FIL_COLORS[i] : FIL_SAME, p: 0, done: false };
+    });
+    const lw = Math.max(9, Math.min(14, W / 32));
+    const tol = Math.max(26, lw * 2.4);
+    let cur = 0, sprite = null, finished = false;
+    const fontE = s => `${s}px "Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif`;
+
+    function draw() {
+      x.clearRect(0, 0, W, H);
+      x.lineCap = 'round'; x.lineJoin = 'round';
+      // les fils
+      paths.forEach((P, i) => {
+        if (i === cur && !finished) return;
+        x.strokeStyle = P.done ? P.color : P.color; x.globalAlpha = P.done ? 0.35 : 1;
+        x.lineWidth = lw; poly(P.pts); x.stroke();
+      });
+      x.globalAlpha = 1;
+      if (!finished) {
+        const P = paths[cur];
+        x.strokeStyle = 'rgba(255,200,61,.45)'; x.lineWidth = lw * 2.2; poly(P.pts); x.stroke();
+        x.strokeStyle = P.color; x.lineWidth = lw; poly(P.pts); x.stroke();
+        if (P.p > 0) { x.strokeStyle = '#FFFFFF'; x.lineWidth = lw * 0.45; poly(P.pts.slice(0, P.p + 1)); x.stroke(); }
+        const h = P.pts[P.p];
+        x.fillStyle = P.p === 0 ? '#3F9A43' : '#EF4F6C'; x.strokeStyle = '#fff'; x.lineWidth = 4;
+        x.beginPath(); x.arc(h[0], h[1], lw * 1.25, 0, Math.PI * 2); x.fill(); x.stroke();
+      }
+      // départs et arrivées
+      x.textAlign = 'center'; x.textBaseline = 'middle';
+      paths.forEach((P, i) => {
+        const big = i === cur && !finished;
+        x.font = fontE(big ? 50 : 40);
+        x.globalAlpha = P.done && sprite?.i !== i ? 0.35 : 1;
+        if (!(sprite && sprite.i === i)) x.fillText(P.r.e, xs[i], topY - 4);
+        x.globalAlpha = 1;
+      });
+      ends.forEach((E, k) => {
+        x.font = fontE(46);
+        x.fillText(E.e, xs[k], botY + 6);
+      });
+      paths.forEach(P => { if (P.done && !(sprite && sprite.P === P)) { x.font = fontE(30); const [ex, ey] = P.pts[P.pts.length - 1]; x.fillText(P.r.e, ex + 30, ey + 36 > H ? ey : ey + 30); } });
+      if (sprite) { x.font = fontE(48); x.fillText(sprite.P.r.e, sprite.pos[0], sprite.pos[1]); }
+    }
+    function poly(pts) { x.beginPath(); x.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) x.lineTo(pts[i][0], pts[i][1]); }
+
+    function ride(i) {
+      return new Promise(res => {
+        const P = paths[i]; const t0 = performance.now(); const dur = 1600;
+        sprite = { i, P, pos: P.pts[0] };
+        const step = t => {
+          const k = Math.max(0, Math.min(1, (t - t0) / dur));
+          sprite.pos = P.pts[Math.floor(k * (P.pts.length - 1))];
+          draw();
+          if (k < 1 && f === G.flow) requestAnimationFrame(step); else { sprite = null; draw(); res(); }
+        };
+        requestAnimationFrame(step);
+      });
+    }
+    function demo() { // un petit point montre le chemin depuis là où on en est
+      const P = paths[cur]; let k = P.p;
+      const tick = () => {
+        if (f !== G.flow || finished || P !== paths[cur]) return;
+        draw();
+        const [hx, hy] = P.pts[k];
+        x.fillStyle = '#FFC83D'; x.strokeStyle = '#D99A00'; x.lineWidth = 3;
+        x.beginPath(); x.arc(hx, hy, lw * 1.1, 0, Math.PI * 2); x.fill(); x.stroke();
+        k += 3;
+        if (k < P.pts.length) requestAnimationFrame(tick); else draw();
+      };
+      tick();
+    }
+    G.replay = () => { audio(); say(`Suis le fil ${deN(paths[cur].r.n)} avec ton doigt !`); demo(); };
+
+    let down = false, misses = 0;
+    const pos = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    function advance(q) {
+      const P = paths[cur];
+      let best = -1;
+      const lim = Math.min(P.pts.length - 1, P.p + 22);
+      for (let i = P.p; i <= lim; i++) if (Math.hypot(P.pts[i][0] - q[0], P.pts[i][1] - q[1]) < tol) best = i;
+      if (best > P.p) {
+        if (Math.floor(best / 12) > Math.floor(P.p / 12)) note(480 + best * 2.5, 0, 0.05, 'sine', 0.05);
+        P.p = best; draw();
+        if (P.p >= P.pts.length - 4) arrive();
+      }
+    }
+    cv.addEventListener('pointerdown', e => {
+      if (finished || f !== G.flow || sprite) return;
+      e.preventDefault(); audio();
+      try { cv.setPointerCapture(e.pointerId); } catch (err) { /* rien */ }
+      const q = pos(e), P = paths[cur];
+      const h = P.pts[P.p];
+      if (Math.hypot(h[0] - q[0], h[1] - q[1]) < tol * 1.6) { down = true; misses = 0; advance(q); }
+      else if (++misses >= 2) { misses = 0; say(P.p === 0 ? `Pose ton doigt sur le point vert, sous ${P.r.n} !` : 'Continue depuis le point rouge !'); demo(); }
+    });
+    cv.addEventListener('pointermove', e => { if (down) advance(pos(e)); });
+    const up = () => { down = false; };
+    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+
+    async function arrive() {
+      down = false;
+      const P = paths[cur];
+      P.p = P.pts.length - 1; P.done = true;
+      sfx.good();
+      await ride(cur);
+      if (f !== G.flow) return;
+      await say(P.end.win ? `${cap(P.r.n)} arrive ${P.end.n} ! ${P.r.n.startsWith('la ') ? 'Elle' : 'Il'} gagne la course !` : `${cap(P.r.n)} arrive ${P.end.n} !`);
+      if (f !== G.flow) return;
+      const next = paths.findIndex(q => !q.done);
+      if (next >= 0) {
+        cur = next; draw();
+        say(`Maintenant, suis le fil ${deN(paths[cur].r.n)} !`);
+        return;
+      }
+      finished = true; draw();
+      const w = paths.find(q => q.end.win);
+      confetti();
+      await say(`C'est ${w.r.n} qui gagne la course !`);
+      if (f === G.flow) { G.n = G.total; nextQ(); }
+    }
+
+    if (location.hash === '#test') window.__maze = { paths, cur: () => cur, rect: () => cv.getBoundingClientRect() };
+    draw();
+    $('#caption').textContent = 'Suis le fil avec ton doigt';
+    G.prompt = `Qui va gagner la course ? Avec ton doigt, suis le fil ${deN(paths[0].r.n)}, en partant du point vert !`;
+    say(G.prompt);
+  }
+
   // ---------- Écrans ----------
   let screen = 'start';
   function show(id) {
@@ -1402,8 +1602,21 @@
       b.style.setProperty('--tc', g.color);
       b.style.animationDelay = (i * 60) + 'ms';
       if (list.length % 2 === 1 && i === list.length - 1) b.classList.add('wide');
+      const lock = id === 'memory' ? store.get('memLock', 0) : 0;
+      if (lock > 0) {
+        b.classList.add('locked');
+        b.append(el('span', 'zz', '💤'), el('span', 'lockdots', '<i></i><i></i><i></i>'.replace(/<i>/g, (m, k) => m)));
+        $$('.lockdots i', b).forEach((d, k) => d.classList.toggle('on', k < 3 - lock));
+      }
       b.onclick = async () => {
-        audio(); sfx.tap();
+        audio();
+        if (id === 'memory' && store.get('memLock', 0) > 0) {
+          const n = store.get('memLock', 0);
+          sfx.soft(); b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope');
+          say(`Le memory se repose ! Fais encore ${n === 1 ? 'un autre jeu' : n + ' autres jeux'}, et il reviendra.`);
+          return;
+        }
+        sfx.tap();
         await Promise.race([say(g.intro), sleep(1600)]);
         startGame(id);
       };
@@ -1488,6 +1701,13 @@
   function finish() {
     if (G.def.counting) store.set('countLevel', Math.min(settings.countMax, countLevel() + 2));
     if (G.id === 'memory') { const w = store.get('memoryWins', 0); G.leveledUp = w < MEMORY_LEVELS.length - 1; store.set('memoryWins', w + 1); }
+    if (G.id === 'fil') { const w = store.get('mazeWins', 0); G.leveledUp = w < MAZE_LEVELS.length - 1; store.set('mazeWins', w + 1); }
+    G.memLocked = false;
+    if (G.id === 'memory' && settings.memLimit > 0) {
+      const n = store.get('memPlays', 0) + 1;
+      if (n >= settings.memLimit) { store.set('memPlays', 0); store.set('memLock', 3); G.memLocked = true; homeIds = null; }
+      else store.set('memPlays', n);
+    } else if (G.id !== 'memory' && store.get('memLock', 0) > 0) store.set('memLock', store.get('memLock', 0) - 1);
     if (G.id === 'puzzle') { const w = store.get('puzzleWins', 0); G.leveledUp = w < PUZZLE_LEVELS.length - 1; store.set('puzzleWins', w + 1); }
     releaseAwake();
     const won = awardSticker();
@@ -1500,9 +1720,10 @@
     confetti();
     const who = settings.name ? ' ' + settings.name : '';
     const solo = G.total === 1;
-    $('#btn-next').hidden = !solo;
+    $('#btn-next').hidden = !solo || G.memLocked;
     $('#btn-again').hidden = solo;
     const gift = `Tu as gagné un autocollant : ${stickerName(won.e)} !`;
+    if (G.memLocked) { say(`Bravo${who} ! ${gift} Tu as beaucoup joué au memory. Maintenant, va faire trois autres jeux, et le memory reviendra !`); return; }
     say(G.id === 'prenom' ? `Bravo${who} ! ${gift} ${nameList().length > 1 ? 'On écrit le prénom suivant ?' : 'On recommence ?'}` : solo ? `Bravo${who} ! ${gift} On passe au suivant ?` : `Bravo${who} ! ${gift} On rejoue ?`);
   }
 
@@ -1603,6 +1824,9 @@
     $('#set-countmax').value = String(settings.countMax);
     $('#set-letters').value = settings.letters;
     $('#set-limit').value = String(settings.timeLimit);
+    $('#set-memlimit').value = String(settings.memLimit);
+    const ml = store.get('memLock', 0);
+    $('#mem-info').textContent = ml > 0 ? `Memory en pause : encore ${ml} autre(s) jeu(x)` : `Parties de memory d'affilée : ${store.get('memPlays', 0)}`;
     $('#set-home').value = settings.homeMode;
     const gl = $('#set-games'); gl.innerHTML = '';
     ORDER.forEach(id => {
@@ -1623,6 +1847,8 @@
     $('#voice-info').textContent = !hasTTS ? 'Voix indisponible sur ce navigateur'
       : frVoice ? `Voix : ${frVoice.name}` : 'Aucune voix française trouvée (voir l\'aide)';
     $('#count-level').textContent = `Niveau actuel : jusqu'à ${countLevel()}`;
+    const ml2 = store.get('memLock', 0);
+    if ($('#mem-info')) $('#mem-info').textContent = ml2 > 0 ? `Memory en pause : encore ${ml2} autre(s) jeu(x)` : `Parties de memory d'affilée : ${store.get('memPlays', 0)}`;
     $('#album-info').textContent = `Album : ${loadStickers().length} autocollants`;
     const [pc, pr] = puzzleGrid();
     $('#levels-info').textContent = `Memory : ${memoryPairs()} paires · Puzzles : ${pc * pr} morceaux`;
@@ -1661,6 +1887,8 @@
   $('#set-countmax').onchange = e => { settings.countMax = +e.target.value; saveSettings(); refreshParentInfo(); };
   $('#set-letters').onchange = e => { settings.letters = e.target.value; saveSettings(); };
   $('#set-home').onchange = e => { settings.homeMode = e.target.value; saveSettings(); homeIds = null; };
+  $('#set-memlimit').onchange = e => { settings.memLimit = +e.target.value; saveSettings(); };
+  $('#btn-mem-unlock').onclick = () => { store.set('memLock', 0); store.set('memPlays', 0); homeIds = null; refreshParentInfo(); };
   $('#set-limit').onchange = e => { settings.timeLimit = +e.target.value; saveSettings(); refreshParentInfo(); };
   $('#btn-test-voice').onclick = () => { audio(); sfx.good(); say(settings.name ? `Bonjour ${settings.name} ! Où est la carotte ?` : 'Bonjour ! Où est la carotte ?'); };
   $('#btn-count-reset').onclick = () => { store.set('countLevel', 5); refreshParentInfo(); };

@@ -132,6 +132,11 @@
       <p class="muted">« 9 jeux qui changent » : à chaque ouverture, 9 jeux au hasard parmi ceux cochés ci-dessous.</p>
       <div id="set-games" class="games-list"></div>
       <p class="muted">⭐ = toujours à l'accueil (en plus du tirage au hasard).</p>
+      <label class="row" for="set-memlimit"><span>Memory d'affilée</span>
+        <select id="set-memlimit"><option value="0">Sans limite</option><option value="3">3 parties</option><option value="5">5 parties</option><option value="8">8 parties</option></select>
+      </label>
+      <p class="muted">Ensuite, le memory se repose jusqu'à ce que 3 autres jeux soient finis.</p>
+      <div class="row"><span id="mem-info" class="muted"></span><button id="btn-mem-unlock" class="pill-text">Débloquer</button></div>
       <label class="row" for="set-countmax"><span>Compter jusqu'à</span>
         <select id="set-countmax"><option value="5">5</option><option value="10">10</option><option value="20">20</option><option value="30">30</option></select>
       </label>
