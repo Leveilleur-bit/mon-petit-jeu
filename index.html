@@ -31,6 +31,7 @@
 <div id="home" class="screen" hidden>
   <header class="home-head">
     <h1 class="brand small">Mon petit jeu</h1>
+    <button id="btn-album" class="album-btn" aria-label="Mon album d'autocollants"><span class="ab-emo" aria-hidden="true">📒</span><span id="album-badge" class="ab-badge" hidden>0</span></button>
     <button class="gear" data-hold aria-label="Coin des parents (appui long)">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.4 7.4 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1c.5.4 1.1.7 1.7 1l.3 2.5h4l.4-2.5c.6-.3 1.2-.6 1.7-1l2.4 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg>
     </button>
@@ -56,7 +57,7 @@
 
 <div id="end" class="screen end" hidden>
   <div class="end-wrap">
-    <div class="big-star" aria-hidden="true">⭐</div>
+    <div class="won-wrap" aria-hidden="true"><span class="won-ray"></span><span id="end-sticker" class="won">⭐</span></div>
     <p class="end-title">Bravo !</p>
     <div class="end-actions">
       <button id="btn-next" class="pill sun" aria-label="Suivant" hidden>
@@ -65,11 +66,23 @@
       <button id="btn-again" class="pill sun" aria-label="Rejouer">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M12 5a7 7 0 1 1-6.6 4.7"/><path d="M3 4.5 5 10l5.3-2.4z"/></svg>
       </button>
+      <button id="btn-end-album" class="pill rose" aria-label="Mon album"><span class="pill-emo" aria-hidden="true">📒</span></button>
       <button id="btn-end-home" class="pill leaf" aria-label="Autre jeu">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11.2 12 4l8.5 7.2V20a1 1 0 0 1-1 1H15v-5.5h-6V21H4.5a1 1 0 0 1-1-1z"/></svg>
       </button>
     </div>
   </div>
+</div>
+
+<div id="album" class="screen album" hidden>
+  <header class="bar">
+    <button id="btn-album-home" class="round" aria-label="Retour aux jeux">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11.2 12 4l8.5 7.2V20a1 1 0 0 1-1 1H15v-5.5h-6V21H4.5a1 1 0 0 1-1-1z"/></svg>
+    </button>
+    <div id="scene-tabs" class="scene-tabs"></div>
+  </header>
+  <div id="scene" class="scene"></div>
+  <div id="tray" class="tray"></div>
 </div>
 
 <div id="rest" class="screen rest" hidden>
@@ -118,6 +131,7 @@
       </label>
       <p class="muted">« 9 jeux qui changent » : à chaque ouverture, 9 jeux au hasard parmi ceux cochés ci-dessous.</p>
       <div id="set-games" class="games-list"></div>
+      <p class="muted">⭐ = toujours à l'accueil (en plus du tirage au hasard).</p>
       <label class="row" for="set-countmax"><span>Compter jusqu'à</span>
         <select id="set-countmax"><option value="5">5</option><option value="10">10</option><option value="20">20</option><option value="30">30</option></select>
       </label>
@@ -126,6 +140,12 @@
       <label class="row" for="set-letters"><span>Lettres</span>
         <select id="set-letters"><option value="simple">Les plus simples</option><option value="all">Tout l'alphabet</option></select>
       </label>
+    </section>
+
+    <section class="pgroup">
+      <h3>Album</h3>
+      <div class="row"><span id="album-info" class="muted"></span><button id="btn-album-reset" class="pill-text">Vider l'album</button></div>
+      <p class="muted">Un autocollant est gagné à chaque partie finie.</p>
     </section>
 
     <section class="pgroup">

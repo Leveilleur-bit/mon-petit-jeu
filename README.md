@@ -12,7 +12,7 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | 🎨 Couleurs | « Où est le rouge ? » : 11 couleurs |
 | 🔤 Lettres | « Où est la lettre B ? B comme ballon » : majuscules, lettres simples d'abord, celles du prénom en priorité |
 | 🐮 Animaux | « Qui fait meuh ? » |
-| 👑 Memory princesse | Retourner les cartes pour trouver les paires : 3 paires au début, puis une de plus à chaque grille réussie (jusqu'à 6). Bouton « Suivant » à la fin |
+| 👑 Memory | Choisir ses cartes (princesses, animaux, mer, fruits, véhicules, gourmandises), puis retrouver les paires : 3 paires au début, puis une de plus à chaque grille réussie (jusqu'à 6). Bouton « Suivant » à la fin |
 | 🧩 Puzzles | Choisir une image (château, licorne, tracteur…) et faire glisser les morceaux : 2 morceaux au début, puis 4, 6 et 9 à chaque puzzle réussi. Bouton « Suivant » : image suivante, un peu plus difficile |
 | 📖 Lire | Toucher les syllabes une par une (LA · PIN), la voix les lit, puis lit le mot entier. Syllabes en bleu et rouge, comme à l'école |
 | ✏️ Mon prénom | Remettre les lettres du prénom dans l'ordre, puis tracer chaque lettre au doigt en partant du point vert (la voix montre d'abord le chemin). Le prénom se règle dans le coin des parents. On peut y ajouter d'autres prénoms (famille, copains) : ils deviennent des niveaux, du plus court au plus long, avec une étoile une fois réussis et un bouton « Suivant » |
@@ -22,15 +22,17 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | 🖍️ Coloriage | 5 dessins (maison, fleur, poisson, papillon, voiture) : choisir une couleur, toucher une zone. Bouton vert pour finir, « Suivant » pour le dessin d'après |
 | 🎵 Musique | Xylophone libre, ou 3 chansons guidées (la barre à toucher brille) : Au clair de la lune, Frère Jacques, Ah vous dirai-je maman |
 
-**Accueil** : 9 jeux tirés au hasard à chaque ouverture de l'appli, en priorité ceux qui n'étaient pas affichés la fois précédente (réglable : « Tous les jeux »).
+**Accueil** : 9 jeux tirés au hasard à chaque ouverture de l'appli, en priorité ceux qui n'étaient pas affichés la fois précédente (réglable : « Tous les jeux »). Les jeux marqués ⭐ dans le coin des parents sont toujours affichés (Memory par défaut).
 
-Une partie = 5 questions (3 pour Compter, 4 mots pour Lire, une grille pour Memory et Puzzles), puis des confettis.
+**Album d'autocollants** (📒 en haut de l'accueil) : chaque partie finie fait gagner un autocollant surprise (60 différents). On le colle sur 4 décors (prairie, mer, château, espace) et on le déplace au doigt ; le faire glisser vers le bas le remet dans la réserve.
+
+Une partie = 5 questions (3 pour Compter, 3 mots pour Lire, une grille pour Memory et Puzzles), puis des confettis.
 En cas d'erreur, l'image se grise et la voix dit ce que c'était (« Ça, c'est le brocoli. Où est la carotte ? ») : l'enfant finit toujours par trouver.
 
 ## Coin des parents
 
 Appui long (2 secondes) sur la petite roue en haut à droite de l'écran des jeux.
-Réglages : volume, vitesse de la voix, bruitages, prénom, autres prénoms à écrire, jeux affichés, « compter jusqu'à », lettres simples ou tout l'alphabet, retour au niveau facile pour Memory et Puzzles, limite de temps d'écran par jour (avec « +10 min aujourd'hui »).
+Réglages : volume, vitesse de la voix, bruitages, prénom, autres prénoms à écrire, jeux affichés, « compter jusqu'à », lettres simples ou tout l'alphabet, retour au niveau facile pour Memory et Puzzles, jeux favoris ⭐, vider l'album, limite de temps d'écran par jour (avec « +10 min aujourd'hui »).
 Tout est enregistré sur le téléphone uniquement.
 
 ## Mettre en ligne (GitHub Pages)
@@ -50,7 +52,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v6` → `v7`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v7` → `v8`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique

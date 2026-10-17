@@ -21,7 +21,7 @@
     volume: 1, rate: 0.9, effects: true, name: '', names: [],
     countMax: 30, letters: 'simple', timeLimit: 0,
     games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true },
-    homeMode: 'rotate'
+    homeMode: 'rotate', favs: ['memory']
   };
   const saved = store.get('settings', {});
   const settings = Object.assign({}, DEFAULTS, saved, { games: Object.assign({}, DEFAULTS.games, saved.games || {}) });
@@ -188,7 +188,7 @@
       make(G) { return { custom: countQuestion }; }
     },
     memory: {
-      name: 'Memory princesse', intro: 'Le memory des princesses !', icon: '👑', color: '#D85FA8', rounds: 1, full: true,
+      name: 'Memory', intro: 'Le memory !', icon: '👑', color: '#D85FA8', rounds: 1, full: true,
       make(G) { return { custom: memoryGame }; }
     },
     puzzle: {
@@ -256,7 +256,7 @@
       make(G) { return { custom: nameGame }; }
     },
     lire: {
-      name: 'Lire', intro: 'On lit les mots !', icon: '📖', color: '#E07A2E', rounds: 4, full: true,
+      name: 'Lire', intro: 'On lit les mots !', icon: '📖', color: '#E07A2E', rounds: 3, full: true,
       make(G) { return { custom: readGame }; }
     },
     couleurs: {
@@ -408,13 +408,51 @@
   ];
   const MEMORY_LEVELS = [3, 4, 5, 6];
   const memoryPairs = () => MEMORY_LEVELS[Math.min(store.get('memoryWins', 0), MEMORY_LEVELS.length - 1)];
+  const MEMORY_THEMES = [
+    { id: 'princesse', e: '👑', n: 'les princesses', bg: '#FFD6EC', b1: '#F48FC4', b2: '#B48BE8', bd: '#C9579A', items: PRINCESS },
+    { id: 'animaux', e: '🐶', n: 'les animaux', bg: '#FFE9C7', b1: '#FFB458', b2: '#F07F3C', bd: '#C25E1F', items: [
+      { e: '🐶', n: 'le chien' }, { e: '🐱', n: 'le chat' }, { e: '🐰', n: 'le lapin' }, { e: '🐼', n: 'le panda' }, { e: '🦁', n: 'le lion' },
+      { e: '🐸', n: 'la grenouille' }, { e: '🐷', n: 'le cochon' }, { e: '🐨', n: 'le koala' }, { e: '🦊', n: 'le renard' }, { e: '🐵', n: 'le singe' }] },
+    { id: 'mer', e: '🐠', n: 'la mer', bg: '#D7EEFF', b1: '#5BC0F0', b2: '#2D7FD3', bd: '#1D5FA6', items: [
+      { e: '🐠', n: 'le poisson' }, { e: '🐙', n: 'la pieuvre' }, { e: '🐬', n: 'le dauphin' }, { e: '🐳', n: 'la baleine' }, { e: '🦀', n: 'le crabe' },
+      { e: '🐢', n: 'la tortue' }, { e: '🐚', n: 'le coquillage' }, { e: '🦈', n: 'le requin' }, { e: '🧜‍♀️', n: 'la sirène' }, { e: '⛵', n: 'le bateau' }] },
+    { id: 'fruits', e: '🍓', n: 'les fruits', bg: '#FFE0E0', b1: '#FF7A7A', b2: '#E8475B', bd: '#B5303F', items: [
+      { e: '🍓', n: 'la fraise' }, { e: '🍎', n: 'la pomme' }, { e: '🍌', n: 'la banane' }, { e: '🍒', n: 'les cerises' }, { e: '🍇', n: 'le raisin' },
+      { e: '🍊', n: "l'orange" }, { e: '🍉', n: 'la pastèque' }, { e: '🍐', n: 'la poire' }, { e: '🥝', n: 'le kiwi' }, { e: '🍍', n: "l'ananas" }] },
+    { id: 'vehicules', e: '🚒', n: 'les véhicules', bg: '#DDE3FF', b1: '#7D8CF0', b2: '#4A5BD0', bd: '#33409E', items: [
+      { e: '🚗', n: 'la voiture' }, { e: '🚒', n: 'le camion de pompiers' }, { e: '🚜', n: 'le tracteur' }, { e: '🚂', n: 'le train' }, { e: '✈️', n: "l'avion" },
+      { e: '🚀', n: 'la fusée' }, { e: '🚁', n: "l'hélicoptère" }, { e: '🚲', n: 'le vélo' }, { e: '⛵', n: 'le bateau' }, { e: '🚌', n: 'le bus' }] },
+    { id: 'douceurs', e: '🧁', n: 'les gourmandises', bg: '#FFF1CC', b1: '#FFCF5C', b2: '#F59BC0', bd: '#C98A1E', items: [
+      { e: '🧁', n: 'le petit gâteau' }, { e: '🍭', n: 'la sucette' }, { e: '🍦', n: 'la glace' }, { e: '🍩', n: 'le beignet' }, { e: '🍪', n: 'le biscuit' },
+      { e: '🍫', n: 'le chocolat' }, { e: '🎂', n: "le gâteau d'anniversaire" }, { e: '🍬', n: 'le bonbon' }, { e: '🥞', n: 'les crêpes' }, { e: '🍰', n: 'la part de gâteau' }] }
+  ];
   function memoryGame(G, f) {
+    const th = MEMORY_THEMES.find(t => t.id === G.opts.theme);
+    if (th) { memoryBoard(G, f, th); return; }
+    const stage = $('#stage');
+    const grid = el('div', 'pzpick');
+    MEMORY_THEMES.forEach((t, i) => {
+      const b = el('button', 'pzthumb', t.e);
+      b.style.setProperty('--bg', t.bg);
+      b.style.animationDelay = (i * 50) + 'ms';
+      b.setAttribute('aria-label', t.n);
+      b.onclick = () => { if (f !== G.flow) return; audio(); sfx.tap(); stage.innerHTML = ''; memoryBoard(G, f, t); };
+      grid.append(b);
+    });
+    stage.append(grid);
+    $('#caption').textContent = 'Choisis tes cartes';
+    G.prompt = 'Choisis tes cartes !';
+    say(G.prompt);
+  }
+  function memoryBoard(G, f, theme) {
+    G.memTheme = theme.id;
     const pairs = memoryPairs();
-    const set = shuffle(PRINCESS).slice(0, pairs);
+    const set = shuffle(theme.items).slice(0, pairs);
     const deck = shuffle([...set, ...set]);
     const grid = el('div', 'mgrid');
     grid.style.setProperty('--cols', pairs === 6 ? 3 : 2);
     grid.style.setProperty('--rows', pairs === 6 ? 4 : pairs);
+    grid.style.setProperty('--mb1', theme.b1); grid.style.setProperty('--mb2', theme.b2); grid.style.setProperty('--mbd', theme.bd);
     let open = [], found = 0, busy = false;
     deck.forEach((it, i) => {
       const c = el('button', 'mcard', `<span class="mface mback"></span><span class="mface mfront">${it.e}</span>`);
@@ -1155,6 +1193,182 @@
     say(G.prompt);
   }
 
+  // ---------- Album d'autocollants ----------
+  const STICKERS = [
+    { e: '🦄', n: 'la licorne' }, { e: '🐱', n: 'le chaton' }, { e: '🐶', n: 'le chiot' }, { e: '🐰', n: 'le lapin' },
+    { e: '🐼', n: 'le panda' }, { e: '🐨', n: 'le koala' }, { e: '🦊', n: 'le renard' }, { e: '🦔', n: 'le hérisson' },
+    { e: '🦋', n: 'le papillon' }, { e: '🐞', n: 'la coccinelle' }, { e: '🐝', n: "l'abeille" }, { e: '🐥', n: 'le poussin' },
+    { e: '🐷', n: 'le cochon' }, { e: '🐮', n: 'la vache' }, { e: '🐴', n: 'le cheval' }, { e: '🐬', n: 'le dauphin' },
+    { e: '🐳', n: 'la baleine' }, { e: '🐠', n: 'le poisson' }, { e: '🐙', n: 'la pieuvre' }, { e: '🐢', n: 'la tortue' },
+    { e: '🦀', n: 'le crabe' }, { e: '🦩', n: 'le flamant rose' }, { e: '🦜', n: 'le perroquet' }, { e: '🦉', n: 'le hibou' },
+    { e: '🐸', n: 'la grenouille' }, { e: '🦕', n: 'le dinosaure' }, { e: '🦒', n: 'la girafe' }, { e: '🐘', n: "l'éléphant" },
+    { e: '🦁', n: 'le lion' }, { e: '🐵', n: 'le singe' }, { e: '🌸', n: 'la fleur' }, { e: '🌻', n: 'le tournesol' },
+    { e: '🌈', n: "l'arc-en-ciel" }, { e: '🌳', n: "l'arbre" }, { e: '🍄', n: 'le champignon' }, { e: '⭐', n: "l'étoile" },
+    { e: '🌙', n: 'la lune' }, { e: '☀️', n: 'le soleil' }, { e: '☁️', n: 'le nuage' }, { e: '🚀', n: 'la fusée' },
+    { e: '🛸', n: 'la soucoupe volante' }, { e: '🪐', n: 'la planète' }, { e: '👑', n: 'la couronne' }, { e: '🏰', n: 'le château' },
+    { e: '👸', n: 'la princesse' }, { e: '🧚', n: 'la fée' }, { e: '🧜‍♀️', n: 'la sirène' }, { e: '💎', n: 'le diamant' },
+    { e: '🎂', n: 'le gâteau' }, { e: '🍦', n: 'la glace' }, { e: '🍭', n: 'la sucette' }, { e: '🍓', n: 'la fraise' },
+    { e: '🎈', n: 'le ballon' }, { e: '🎁', n: 'le cadeau' }, { e: '🚗', n: 'la voiture' }, { e: '⛵', n: 'le bateau' },
+    { e: '✈️', n: "l'avion" }, { e: '🚂', n: 'le train' }, { e: '🪁', n: 'le cerf-volant' }, { e: '🐚', n: 'le coquillage' }
+  ];
+  const SCENES = [
+    { id: 'prairie', e: '🌳', n: 'la prairie', svg: `
+      <defs><linearGradient id="sk1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9ED8FF"/><stop offset="1" stop-color="#E4F6FF"/></linearGradient></defs>
+      <rect width="300" height="400" fill="url(#sk1)"/>
+      <circle cx="245" cy="62" r="34" fill="#FFD43B"/>
+      <g fill="#fff"><ellipse cx="70" cy="70" rx="38" ry="15"/><ellipse cx="95" cy="60" rx="24" ry="15"/><ellipse cx="170" cy="120" rx="30" ry="11"/></g>
+      <path d="M0 250 Q 90 205 170 240 T 300 228 V400 H0 Z" fill="#8BD17C"/>
+      <path d="M0 300 Q 120 262 300 296 V400 H0 Z" fill="#6CC05E"/>` },
+    { id: 'mer', e: '🌊', n: 'la mer', svg: `
+      <defs><linearGradient id="sk2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7FD3F5"/><stop offset="1" stop-color="#1E7FC4"/></linearGradient></defs>
+      <rect width="300" height="400" fill="url(#sk2)"/>
+      <path d="M0 40 Q 25 30 50 40 T 100 40 T 150 40 T 200 40 T 250 40 T 300 40 V0 H0 Z" fill="#CFEFFF"/>
+      <g fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="4" stroke-linecap="round"><path d="M30 120 q15 -8 30 0"/><path d="M200 170 q15 -8 30 0"/><path d="M90 230 q15 -8 30 0"/></g>
+      <g fill="#fff" fill-opacity=".5"><circle cx="250" cy="110" r="6"/><circle cx="262" cy="90" r="4"/><circle cx="60" cy="190" r="5"/></g>
+      <path d="M0 340 Q 80 318 150 334 T 300 326 V400 H0 Z" fill="#F4D58D"/>
+      <g fill="#2EAD4B"><path d="M40 345 q-10 -40 6 -70 q-4 35 4 70z"/><path d="M262 336 q10 -45 -4 -76 q12 36 10 76z"/></g>` },
+    { id: 'chateau', e: '🏰', n: 'le château', svg: `
+      <defs><linearGradient id="sk3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6C6E8"/><stop offset="1" stop-color="#FFF0F8"/></linearGradient></defs>
+      <rect width="300" height="400" fill="url(#sk3)"/>
+      <g fill="#fff" fill-opacity=".8"><circle cx="40" cy="50" r="3"/><circle cx="260" cy="40" r="4"/><circle cx="150" cy="30" r="2.5"/><circle cx="210" cy="90" r="2.5"/></g>
+      <g fill="#E7B8F2"><rect x="60" y="190" width="180" height="130"/><rect x="40" y="150" width="44" height="170"/><rect x="216" y="150" width="44" height="170"/><rect x="128" y="140" width="44" height="60"/></g>
+      <g fill="#C67AD8"><polygon points="36,152 62,100 88,152"/><polygon points="212,152 238,100 264,152"/><polygon points="124,142 150,92 176,142"/></g>
+      <path d="M128 320 v-50 a22 22 0 0 1 44 0 v50 z" fill="#9B59B6"/>
+      <path d="M0 312 Q 150 292 300 312 V400 H0 Z" fill="#9EDB8E"/>` },
+    { id: 'espace', e: '🚀', n: "l'espace", svg: `
+      <defs><radialGradient id="sk4" cx=".5" cy=".3" r=".9"><stop offset="0" stop-color="#3A4A9A"/><stop offset="1" stop-color="#141B45"/></radialGradient></defs>
+      <rect width="300" height="400" fill="url(#sk4)"/>
+      <g fill="#fff">${Array.from({ length: 40 }, (_, i) => `<circle cx="${(i * 73) % 300}" cy="${(i * 131) % 330}" r="${(i % 3) * 0.7 + 0.8}" fill-opacity="${0.4 + (i % 4) * 0.15}"/>`).join('')}</g>
+      <circle cx="230" cy="80" r="34" fill="#FF9F6B"/><ellipse cx="230" cy="80" rx="56" ry="11" fill="none" stroke="#FFD0A8" stroke-width="5"/>
+      <path d="M-20 400 a170 90 0 0 1 340 0 z" fill="#B8C0D8"/>
+      <g fill="#9AA3C2"><ellipse cx="80" cy="360" rx="20" ry="7"/><ellipse cx="200" cy="375" rx="14" ry="5"/><ellipse cx="150" cy="345" rx="10" ry="4"/></g>` }
+  ];
+  const stickerName = e => (STICKERS.find(s => s.e === e) || { n: 'cet autocollant' }).n;
+  const loadStickers = () => store.get('stickers', []);
+  const saveStickers = a => store.set('stickers', a);
+  let albumScene = 0, newSticker = null;
+
+  function awardSticker() {
+    const all = loadStickers();
+    const owned = new Set(all.map(s => s.e));
+    const fresh = STICKERS.filter(s => !owned.has(s.e));
+    const s = pick(fresh.length ? fresh : STICKERS);
+    const item = { id: Date.now() + '-' + rand(1e6), e: s.e, scene: null, x: 0.5, y: 0.5 };
+    all.push(item);
+    saveStickers(all.slice(-300));
+    newSticker = item.id;
+    updateAlbumBadge();
+    return s;
+  }
+  function updateAlbumBadge() {
+    const n = loadStickers().filter(s => s.scene == null).length;
+    const b = $('#album-badge');
+    if (b) { b.textContent = n; b.hidden = n === 0; }
+  }
+
+  function openAlbum() {
+    hush();
+    if (G) G.flow++;
+    let all = loadStickers();
+    let intro = '';
+    if (!store.get('albumWelcome', false)) {
+      store.set('albumWelcome', true);
+      shuffle(STICKERS.filter(s => !all.some(x => x.e === s.e))).slice(0, 3).forEach(s => all.push({ id: Date.now() + '-' + rand(1e6), e: s.e, scene: null, x: 0.5, y: 0.5 }));
+      saveStickers(all);
+      intro = 'Voici ton album, avec trois autocollants en cadeau ! Touche un autocollant en bas pour le coller, puis fais-le glisser où tu veux.';
+    }
+    show('album');
+    pushState();
+    renderAlbum();
+    const free = all.filter(s => s.scene == null).length;
+    say(intro || (free ? 'Touche un autocollant en bas pour le coller !' : (all.length ? 'Ton album ! Fais glisser les autocollants où tu veux.' : 'Joue pour gagner des autocollants !')));
+  }
+
+  function renderAlbum() {
+    const tabs = $('#scene-tabs'); tabs.innerHTML = '';
+    SCENES.forEach((sc, i) => {
+      const b = el('button', 'scene-tab' + (i === albumScene ? ' on' : ''), sc.e);
+      b.setAttribute('aria-label', sc.n);
+      b.onclick = () => { audio(); sfx.tap(); albumScene = i; renderAlbum(); say(cap(sc.n)); };
+      tabs.append(b);
+    });
+    const scene = $('#scene');
+    scene.innerHTML = `<svg class="scene-bg" viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${SCENES[albumScene].svg}</svg>`;
+    const all = loadStickers();
+    all.filter(s => s.scene === albumScene).forEach(s => scene.append(placedEl(s)));
+    const tray = $('#tray'); tray.innerHTML = '';
+    const free = all.filter(s => s.scene == null).reverse();
+    if (!free.length) tray.append(el('p', 'tray-empty', all.length ? 'Tous tes autocollants sont collés ⭐' : 'Joue pour gagner des autocollants ⭐'));
+    free.forEach(s => {
+      const b = el('button', 'tray-st' + (s.id === newSticker ? ' new' : ''), s.e);
+      b.setAttribute('aria-label', stickerName(s.e));
+      b.onclick = () => placeFromTray(s.id);
+      tray.append(b);
+    });
+    updateAlbumBadge();
+  }
+
+  function placedEl(s) {
+    const d = el('div', 'st', s.e);
+    d.style.left = (s.x * 100) + '%'; d.style.top = (s.y * 100) + '%';
+    d.dataset.id = s.id;
+    bindStickerDrag(d, s.id);
+    return d;
+  }
+
+  function placeFromTray(id) {
+    audio();
+    const all = loadStickers();
+    const s = all.find(x => x.id === id); if (!s) return;
+    s.scene = albumScene;
+    s.x = 0.18 + Math.random() * 0.64; s.y = 0.22 + Math.random() * 0.56;
+    saveStickers(all);
+    if (newSticker === id) newSticker = null;
+    note(880, 0, 0.08, 'sine', 0.14); note(1320, 0.07, 0.12, 'sine', 0.1);
+    renderAlbum();
+    const d = $(`.st[data-id="${id}"]`); if (d) d.classList.add('landed');
+    say(cap(stickerName(s.e)) + ' !');
+  }
+
+  function bindStickerDrag(d, id) {
+    let start = null, moved = false;
+    d.addEventListener('pointerdown', e => {
+      e.preventDefault(); audio();
+      try { d.setPointerCapture(e.pointerId); } catch (err) { /* rien */ }
+      start = [e.clientX, e.clientY]; moved = false;
+      d.classList.add('drag');
+    });
+    d.addEventListener('pointermove', e => {
+      if (!start) return;
+      if (Math.abs(e.clientX - start[0]) + Math.abs(e.clientY - start[1]) > 8) moved = true;
+      if (!moved) return;
+      const r = $('#scene').getBoundingClientRect();
+      d.style.left = ((e.clientX - r.left) / r.width * 100) + '%';
+      d.style.top = ((e.clientY - r.top) / r.height * 100) + '%';
+      $('#tray').classList.toggle('drop', e.clientY > $('#tray').getBoundingClientRect().top - 10);
+    });
+    const up = e => {
+      if (!start) return;
+      start = null; d.classList.remove('drag');
+      $('#tray').classList.remove('drop');
+      const all = loadStickers();
+      const s = all.find(x => x.id === id); if (!s) return;
+      if (!moved) { d.classList.remove('wiggle'); void d.offsetWidth; d.classList.add('wiggle'); say(cap(stickerName(s.e)) + ' !'); return; }
+      const r = $('#scene').getBoundingClientRect();
+      const tr = $('#tray').getBoundingClientRect();
+      if (e.clientY > tr.top - 10) { s.scene = null; note(500, 0, 0.1, 'sine', 0.1); }
+      else {
+        s.x = Math.min(0.95, Math.max(0.05, (e.clientX - r.left) / r.width));
+        s.y = Math.min(0.95, Math.max(0.05, (e.clientY - r.top) / r.height));
+        note(780, 0, 0.07, 'sine', 0.12);
+      }
+      saveStickers(all);
+      renderAlbum();
+    };
+    d.addEventListener('pointerup', up);
+    d.addEventListener('pointercancel', up);
+  }
+
   // ---------- Écrans ----------
   let screen = 'start';
   function show(id) {
@@ -1169,7 +1383,9 @@
     const enabled = ORDER.filter(id => settings.games[id]);
     if (settings.homeMode === 'all' || enabled.length <= HOME_MAX) { homeIds = enabled; return; }
     const last = store.get('lastHome', []);
-    const sel = shuffle(enabled.filter(id => !last.includes(id))).concat(shuffle(enabled.filter(id => last.includes(id)))).slice(0, HOME_MAX);
+    const favs = enabled.filter(id => (settings.favs || []).includes(id)).slice(0, HOME_MAX);
+    const rest = enabled.filter(id => !favs.includes(id));
+    const sel = favs.concat(shuffle(rest.filter(id => !last.includes(id))).concat(shuffle(rest.filter(id => last.includes(id))))).slice(0, HOME_MAX);
     homeIds = ORDER.filter(id => sel.includes(id));
     store.set('lastHome', homeIds);
   }
@@ -1272,15 +1488,20 @@
     if (G.id === 'memory') { const w = store.get('memoryWins', 0); G.leveledUp = w < MEMORY_LEVELS.length - 1; store.set('memoryWins', w + 1); }
     if (G.id === 'puzzle') { const w = store.get('puzzleWins', 0); G.leveledUp = w < PUZZLE_LEVELS.length - 1; store.set('puzzleWins', w + 1); }
     releaseAwake();
+    const won = awardSticker();
     if (pendingRest || limitReached()) { goRest(); return; }
     show('end');
+    const es = $('#end-sticker');
+    es.textContent = won.e;
+    es.classList.remove('peel'); void es.offsetWidth; es.classList.add('peel');
     sfx.fanfare();
     confetti();
     const who = settings.name ? ' ' + settings.name : '';
     const solo = G.total === 1;
     $('#btn-next').hidden = !solo;
     $('#btn-again').hidden = solo;
-    say(G.id === 'prenom' ? (nameList().length > 1 ? `Bravo${who} ! On écrit le prénom suivant ?` : `Bravo${who} ! On recommence ?`) : solo ? `Bravo${who} ! Tu as réussi ! On passe au suivant ?` : `Bravo${who} ! Tu as gagné ${G.total} étoiles ! On rejoue ?`);
+    const gift = `Tu as gagné un autocollant : ${stickerName(won.e)} !`;
+    say(G.id === 'prenom' ? `Bravo${who} ! ${gift} ${nameList().length > 1 ? 'On écrit le prénom suivant ?' : 'On recommence ?'}` : solo ? `Bravo${who} ! ${gift} On passe au suivant ?` : `Bravo${who} ! ${gift} On rejoue ?`);
   }
 
   // ---------- Confettis ----------
@@ -1317,7 +1538,7 @@
   let pendingRest = false;
   const limitReached = () => { freshUsage(); return settings.timeLimit > 0 && usage.sec >= (settings.timeLimit + usage.extra) * 60; };
   setInterval(() => {
-    if (document.hidden || !['home', 'game', 'end'].includes(screen)) return;
+    if (document.hidden || !['home', 'game', 'end', 'album'].includes(screen)) return;
     freshUsage();
     usage.sec += 5;
     store.set('usage', usage);
@@ -1344,7 +1565,7 @@
   // ---------- Bouton retour d'Android ----------
   function pushState() { try { history.pushState({ mpj: screen }, ''); } catch (e) { /* rien */ } }
   window.addEventListener('popstate', () => {
-    if (['game', 'end', 'parent'].includes(screen)) { closeParentIfOpen(); goHome(false); }
+    if (['game', 'end', 'parent', 'album'].includes(screen)) { closeParentIfOpen(); goHome(false); }
   });
   function closeParentIfOpen() { if (screen === 'parent') saveSettings(); }
 
@@ -1383,10 +1604,16 @@
     $('#set-home').value = settings.homeMode;
     const gl = $('#set-games'); gl.innerHTML = '';
     ORDER.forEach(id => {
+      const row = el('div', 'grow');
       const lab = el('label', '', `<input type="checkbox" id="game-${id}"> ${GAMES[id].icon} ${GAMES[id].name}`);
       const cb = $('input', lab); cb.checked = !!settings.games[id];
       cb.onchange = () => { settings.games[id] = cb.checked; saveSettings(); homeIds = null; };
-      gl.append(lab);
+      const fav = el('button', 'fav', '');
+      const paint = () => { const on = (settings.favs || []).includes(id); fav.textContent = on ? '⭐' : '☆'; fav.classList.toggle('on', on); fav.setAttribute('aria-label', (on ? 'Retirer des favoris : ' : 'Toujours à l\'accueil : ') + GAMES[id].name); };
+      fav.onclick = () => { const fv = new Set(settings.favs || []); fv.has(id) ? fv.delete(id) : fv.add(id); settings.favs = [...fv]; saveSettings(); homeIds = null; paint(); };
+      paint();
+      row.append(lab, fav);
+      gl.append(row);
     });
     refreshParentInfo();
   }
@@ -1394,6 +1621,7 @@
     $('#voice-info').textContent = !hasTTS ? 'Voix indisponible sur ce navigateur'
       : frVoice ? `Voix : ${frVoice.name}` : 'Aucune voix française trouvée (voir l\'aide)';
     $('#count-level').textContent = `Niveau actuel : jusqu'à ${countLevel()}`;
+    $('#album-info').textContent = `Album : ${loadStickers().length} autocollants`;
     const [pc, pr] = puzzleGrid();
     $('#levels-info').textContent = `Memory : ${memoryPairs()} paires · Puzzles : ${pc * pr} morceaux`;
     freshUsage();
@@ -1442,13 +1670,21 @@
   $('#btn-start').onclick = () => {
     audio(); sfx.good(); pickVoice(); pickHome();
     if (limitReached()) { goRest(); return; }
-    buildHome(); show('home');
+    buildHome(); updateAlbumBadge(); show('home');
     say(settings.name ? `Bonjour ${settings.name} ! Choisis un jeu !` : 'Bonjour ! Choisis un jeu !');
   };
   $('#btn-home').onclick = () => { sfx.tap(); goHome(); };
   $('#btn-repeat').onclick = repeat;
   $('#btn-again').onclick = () => { sfx.tap(); startGame(G.id); };
-  $('#btn-next').onclick = () => { sfx.tap(); startGame(G.id, { next: true, harder: !!G.leveledUp, nameIdx: G.id === 'prenom' ? (G.nameIdx ?? -1) + 1 : undefined }); };
+  $('#btn-album').onclick = () => { sfx.tap(); openAlbum(); };
+  $('#btn-end-album').onclick = () => { sfx.tap(); openAlbum(); };
+  $('#btn-album-home').onclick = () => { sfx.tap(); goHome(); };
+  let resetArmed = 0;
+  $('#btn-album-reset').onclick = e => {
+    if (Date.now() - resetArmed > 3000) { resetArmed = Date.now(); e.target.textContent = 'Toucher encore pour vider'; setTimeout(() => { e.target.textContent = "Vider l'album"; }, 3000); return; }
+    saveStickers([]); store.set('albumWelcome', false); resetArmed = 0; e.target.textContent = "Vider l'album"; refreshParentInfo();
+  };
+  $('#btn-next').onclick = () => { sfx.tap(); startGame(G.id, { next: true, harder: !!G.leveledUp, theme: G.memTheme, nameIdx: G.id === 'prenom' ? (G.nameIdx ?? -1) + 1 : undefined }); };
   $('#btn-end-home').onclick = () => { sfx.tap(); goHome(); };
 
   // ---------- Hors connexion ----------
