@@ -15,7 +15,7 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | 👑 Memory princesse | Retourner les cartes pour trouver les paires : 3 paires au début, puis une de plus à chaque grille réussie (jusqu'à 6). Bouton « Suivant » à la fin |
 | 🧩 Puzzles | Choisir une image (château, licorne, tracteur…) et faire glisser les morceaux : 2 morceaux au début, puis 4, 6 et 9 à chaque puzzle réussi. Bouton « Suivant » : image suivante, un peu plus difficile |
 | 📖 Lire | Toucher les syllabes une par une (LA · PIN), la voix les lit, puis lit le mot entier. Syllabes en bleu et rouge, comme à l'école |
-| ✏️ Mon prénom | Remettre les lettres du prénom dans l'ordre, puis tracer chaque lettre au doigt en partant du point vert (la voix montre d'abord le chemin). Le prénom se règle dans le coin des parents |
+| ✏️ Mon prénom | Remettre les lettres du prénom dans l'ordre, puis tracer chaque lettre au doigt en partant du point vert (la voix montre d'abord le chemin). Le prénom se règle dans le coin des parents. On peut y ajouter d'autres prénoms (famille, copains) : ils deviennent des niveaux, du plus court au plus long, avec une étoile une fois réussis et un bouton « Suivant » |
 | 🔷 Formes | « Où est le triangle ? » : rond, carré, triangle, rectangle, étoile, cœur, losange |
 | 🐘 Grand et petit | Toucher le plus grand, puis le plus petit (en alternance) |
 | 🦒 Les ombres | Retrouver l'ombre de l'animal ou de l'objet montré |
@@ -30,7 +30,7 @@ En cas d'erreur, l'image se grise et la voix dit ce que c'était (« Ça, c'est 
 ## Coin des parents
 
 Appui long (2 secondes) sur la petite roue en haut à droite de l'écran des jeux.
-Réglages : volume, vitesse de la voix, bruitages, prénom, jeux affichés, « compter jusqu'à », lettres simples ou tout l'alphabet, retour au niveau facile pour Memory et Puzzles, limite de temps d'écran par jour (avec « +10 min aujourd'hui »).
+Réglages : volume, vitesse de la voix, bruitages, prénom, autres prénoms à écrire, jeux affichés, « compter jusqu'à », lettres simples ou tout l'alphabet, retour au niveau facile pour Memory et Puzzles, limite de temps d'écran par jour (avec « +10 min aujourd'hui »).
 Tout est enregistré sur le téléphone uniquement.
 
 ## Mettre en ligne (GitHub Pages)
@@ -50,7 +50,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v5` → `v6`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v6` → `v7`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique

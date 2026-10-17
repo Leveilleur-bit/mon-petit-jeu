@@ -18,7 +18,7 @@
 
   // ---------- Réglages ----------
   const DEFAULTS = {
-    volume: 1, rate: 0.9, effects: true, name: '',
+    volume: 1, rate: 0.9, effects: true, name: '', names: [],
     countMax: 30, letters: 'simple', timeLimit: 0,
     games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true },
     homeMode: 'rotate'
@@ -729,16 +729,50 @@
     return Math.hypot(px - ax - t * dx, py - ay - t * dy);
   };
 
+  // Liste des prénoms : celui de l'enfant d'abord, puis les autres du plus court au plus long (= les niveaux)
+  const letterCount = n => [...n].filter(c => /\p{L}/u.test(c)).length;
+  function nameList() {
+    const own = (settings.name || '').trim();
+    const others = (settings.names || []).filter(x => x && x.toLowerCase() !== own.toLowerCase());
+    others.sort((a, b) => letterCount(a) - letterCount(b) || a.localeCompare(b, 'fr'));
+    return (own ? [own] : []).concat(others);
+  }
   function nameGame(G, f) {
     const stage = $('#stage');
-    const raw = (settings.name || '').trim();
-    if (!raw) {
+    const list = nameList();
+    if (!list.length) {
       stage.append(el('div', 'name-empty', '<span class="emo">✏️</span><p>Pour ce jeu, entrez le prénom de l\'enfant dans le coin des parents (appui long sur la roue de l\'écran d\'accueil).</p>'));
       G.prompt = "Demande à papa ou maman d'écrire ton prénom dans les réglages !";
       say(G.prompt);
       return;
     }
-    const name = raw;
+    if (G.opts.nameIdx != null || list.length === 1) { playName(G, f, list[(G.opts.nameIdx || 0) % list.length]); return; }
+    // plusieurs prénoms : on choisit
+    const done = store.get('namesDone', []);
+    const grid = el('div', 'namepick');
+    list.forEach((nm, i) => {
+      const own = i === 0 && nm === (settings.name || '').trim();
+      const b = el('button', 'npick' + (own ? ' own' : ''), `${own ? '<span class="crown">👑</span>' : ''}<span class="nm">${nm.toUpperCase()}</span>${done.includes(nm.toLowerCase()) ? '<span class="nstar">⭐</span>' : ''}`);
+      b.setAttribute('aria-label', nm);
+      b.style.animationDelay = (i * 60) + 'ms';
+      b.onclick = () => {
+        if (f !== G.flow) return;
+        audio(); sfx.tap();
+        stage.innerHTML = '';
+        playName(G, f, nm);
+      };
+      grid.append(b);
+    });
+    stage.append(grid);
+    $('#caption').textContent = 'Choisis un prénom';
+    G.prompt = 'Quel prénom veux-tu écrire ?';
+    say(G.prompt);
+  }
+
+  function playName(G, f, name) {
+    const stage = $('#stage');
+    G.nameIdx = nameList().indexOf(name);
+    const own = name === (settings.name || '').trim();
     const shown = [...name.toUpperCase()].filter(c => /\p{L}/u.test(c));
     const base = shown.map(c => c.normalize('NFD').replace(/[̀-ͯ]/g, '')).map(c => GLYPHS[c] ? c : 'I');
     const n = shown.length;
@@ -770,7 +804,7 @@
             await sleep(500);
             if (f !== G.flow) return;
             sfx.good();
-            await say(`${praise()} ${base.map(letterSay).join(', ')} : ${name} ! C'est ton prénom !`);
+            await say(`${praise()} ${base.map(letterSay).join(', ')} : ${name} ! ${own ? "C'est ton prénom !" : 'Bravo !'}`);
             if (f === G.flow) tracePhase();
           }
         } else {
@@ -785,8 +819,9 @@
       return b;
     });
     chipEls[0].classList.add('cur');
-    $('#caption').textContent = 'Écris ton prénom';
-    G.prompt = `${name}, écris ton prénom avec les lettres ! Ton prénom commence par la lettre ${letterSay(base[0])}.`;
+    $('#caption').textContent = own ? 'Écris ton prénom' : 'Écris ' + name;
+    G.prompt = own ? `${name}, écris ton prénom avec les lettres ! Ton prénom commence par la lettre ${letterSay(base[0])}.`
+      : `Écris le prénom ${name} avec les lettres ! Il commence par la lettre ${letterSay(base[0])}.`;
     say(G.prompt);
 
     // Étape 2 : tracer chaque lettre
@@ -807,7 +842,9 @@
       if (f !== G.flow) return;
       G.replay = null;
       chips.classList.add('whole');
-      await say(`Tu as écrit ton prénom ! ${base.map(letterSay).join(', ')} : ${name} !`);
+      const dn = store.get('namesDone', []);
+      if (!dn.includes(name.toLowerCase())) store.set('namesDone', dn.concat(name.toLowerCase()));
+      await say(own ? `Tu as écrit ton prénom ! ${base.map(letterSay).join(', ')} : ${name} !` : `Tu as écrit ${name} ! ${base.map(letterSay).join(', ')} : ${name} !`);
       if (f === G.flow) { G.n = G.total; nextQ(); }
     }
   }
@@ -1243,7 +1280,7 @@
     const solo = G.total === 1;
     $('#btn-next').hidden = !solo;
     $('#btn-again').hidden = solo;
-    say(G.id === 'prenom' ? `Bravo${who} ! On recommence ?` : solo ? `Bravo${who} ! Tu as réussi ! On passe au suivant ?` : `Bravo${who} ! Tu as gagné ${G.total} étoiles ! On rejoue ?`);
+    say(G.id === 'prenom' ? (nameList().length > 1 ? `Bravo${who} ! On écrit le prénom suivant ?` : `Bravo${who} ! On recommence ?`) : solo ? `Bravo${who} ! Tu as réussi ! On passe au suivant ?` : `Bravo${who} ! Tu as gagné ${G.total} étoiles ! On rejoue ?`);
   }
 
   // ---------- Confettis ----------
@@ -1339,6 +1376,7 @@
     $('#set-rate').value = settings.rate;
     $('#set-effects').checked = settings.effects;
     $('#set-name').value = settings.name;
+    renderNames();
     $('#set-countmax').value = String(settings.countMax);
     $('#set-letters').value = settings.letters;
     $('#set-limit').value = String(settings.timeLimit);
@@ -1366,6 +1404,30 @@
   $('#set-rate').oninput = e => { settings.rate = +e.target.value; saveSettings(); };
   $('#set-effects').onchange = e => { settings.effects = e.target.checked; saveSettings(); };
   $('#set-name').oninput = e => { settings.name = e.target.value.trim(); saveSettings(); };
+  function renderNames() {
+    const box = $('#names-list'); box.innerHTML = '';
+    const list = nameList().filter(n => n !== (settings.name || '').trim());
+    if (!list.length) { box.append(el('p', 'muted', 'Aucun autre prénom pour l\'instant.')); return; }
+    list.forEach((nm, i) => {
+      const chip = el('span', 'name-chip', `<b>${i + 1}</b> ${nm}`);
+      const x = el('button', 'name-x', '×');
+      x.setAttribute('aria-label', 'Retirer ' + nm);
+      x.onclick = () => { settings.names = settings.names.filter(v => v !== nm); saveSettings(); renderNames(); };
+      chip.append(x); box.append(chip);
+    });
+  }
+  function addNames() {
+    const inp = $('#set-newname');
+    const have = new Set([(settings.name || '').toLowerCase(), ...settings.names.map(v => v.toLowerCase())]);
+    inp.value.split(/[,;\n]/).map(v => v.trim().replace(/\s+/g, ' ')).filter(v => letterCount(v) > 0).forEach(v => {
+      const nice = v.charAt(0).toUpperCase() + v.slice(1);
+      if (!have.has(nice.toLowerCase()) && settings.names.length < 20) { settings.names.push(nice); have.add(nice.toLowerCase()); }
+    });
+    inp.value = '';
+    saveSettings(); renderNames();
+  }
+  $('#btn-addname').onclick = addNames;
+  $('#set-newname').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addNames(); } });
   $('#set-countmax').onchange = e => { settings.countMax = +e.target.value; saveSettings(); refreshParentInfo(); };
   $('#set-letters').onchange = e => { settings.letters = e.target.value; saveSettings(); };
   $('#set-home').onchange = e => { settings.homeMode = e.target.value; saveSettings(); homeIds = null; };
@@ -1386,7 +1448,7 @@
   $('#btn-home').onclick = () => { sfx.tap(); goHome(); };
   $('#btn-repeat').onclick = repeat;
   $('#btn-again').onclick = () => { sfx.tap(); startGame(G.id); };
-  $('#btn-next').onclick = () => { sfx.tap(); startGame(G.id, { next: true, harder: !!G.leveledUp }); };
+  $('#btn-next').onclick = () => { sfx.tap(); startGame(G.id, { next: true, harder: !!G.leveledUp, nameIdx: G.id === 'prenom' ? (G.nameIdx ?? -1) + 1 : undefined }); };
   $('#btn-end-home').onclick = () => { sfx.tap(); goHome(); };
 
   // ---------- Hors connexion ----------
