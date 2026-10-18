@@ -150,6 +150,19 @@
       <h3>Difficulté par jeu</h3>
       <p class="muted">1 = le plus facile. « Monte seul » : le niveau augmente aussi tout seul à chaque partie réussie.</p>
       <div id="set-levels" class="levels"></div>
+      <div class="subopts">
+        <p class="subopts-title">👑 Memory : plus d'options</p>
+        <label class="row" for="set-memgroup"><span>Trouver</span>
+          <select id="set-memgroup"><option value="2">des paires (2 cartes)</option><option value="3">des trios (3 cartes)</option></select>
+        </label>
+        <label class="row" for="set-mempeek"><span>Coup d'œil au début</span>
+          <select id="set-mempeek"><option value="0">Non</option><option value="2">2 secondes</option><option value="4">4 secondes</option></select>
+        </label>
+        <label class="row" for="set-memdelay"><span>Cartes ratées visibles</span>
+          <select id="set-memdelay"><option value="long">Longtemps</option><option value="normal">Normal</option><option value="court">Peu de temps</option></select>
+        </label>
+        <p class="muted">Le nombre de paires monte seul jusqu'à 6 ; 8 et 10 paires se choisissent ci-dessus.</p>
+      </div>
     </section>
 
     <section class="pgroup">

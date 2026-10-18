@@ -12,7 +12,7 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | 🎨 Couleurs | « Où est le rouge ? » : 11 couleurs |
 | 🔤 Lettres | « Où est la lettre B ? B comme ballon » : majuscules, lettres simples d'abord, celles du prénom en priorité |
 | 🐮 Animaux | « Qui fait meuh ? » |
-| 👑 Memory | Choisir ses cartes (princesses, animaux, mer, fruits, véhicules, gourmandises), puis retrouver les paires : 3 paires au début, puis une de plus à chaque grille réussie (jusqu'à 6). Bouton « Suivant » à la fin. Après 5 parties d'affilée (réglable), le memory se repose jusqu'à ce que 3 autres jeux soient finis |
+| 👑 Memory | Choisir ses cartes (princesses, animaux, mer, fruits, véhicules, gourmandises), puis retrouver les paires : 3 paires au début, puis une de plus à chaque grille réussie (jusqu'à 6 ; 8 et 10 paires au choix). Options : trios au lieu de paires, coup d'œil sur toutes les cartes au début, temps d'affichage des cartes ratées. Bouton « Suivant » à la fin. Après 5 parties d'affilée (réglable), le memory se repose jusqu'à ce que 3 autres jeux soient finis |
 | 🧩 Puzzles | Choisir une image (château, licorne, tracteur…) et faire glisser les morceaux : 2 morceaux au début, puis 4, 6 et 9 à chaque puzzle réussi. Bouton « Suivant » : image suivante, un peu plus difficile |
 | 📖 Lire | Toucher les syllabes une par une (LA · PIN), la voix les lit, puis lit le mot entier. Syllabes en bleu et rouge, comme à l'école |
 | ✏️ Mon prénom | Remettre les lettres du prénom dans l'ordre, puis tracer chaque lettre au doigt en partant du point vert (la voix montre d'abord le chemin). Le prénom se règle dans le coin des parents. On peut y ajouter d'autres prénoms (famille, copains) : ils deviennent des niveaux, du plus court au plus long, avec une étoile une fois réussis et un bouton « Suivant » |
@@ -54,7 +54,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v10` → `v11`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v11` → `v12`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique

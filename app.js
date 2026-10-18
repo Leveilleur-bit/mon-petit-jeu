@@ -19,7 +19,7 @@
   // ---------- Réglages ----------
   const DEFAULTS = {
     volume: 1, rate: 0.9, effects: true, name: '', names: [],
-    countMax: 30, letters: 'simple', timeLimit: 0, memLimit: 5, levels: {},
+    countMax: 30, letters: 'simple', timeLimit: 0, memLimit: 5, levels: {}, memPeek: 0, memDelay: 'normal', memGroup: 2,
     games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true, fil: true, gouter: true },
     homeMode: 'rotate', favs: ['memory']
   };
@@ -372,7 +372,7 @@
     ombres: { opts: ['2 choix', '3 choix', '4 choix'], def: 1 },
     lire: { opts: ['Mots courts', 'Tous les mots'], def: 1 },
     prenom: { opts: ['Lettres seulement', 'Lettres + tracé facile', 'Lettres + tracé précis'], def: 1 },
-    memory: { opts: ['3 paires', '4 paires', '5 paires', '6 paires'], key: 'memoryWins' },
+    memory: { opts: ['3 paires', '4 paires', '5 paires', '6 paires', '8 paires', '10 paires'], key: 'memLevel' },
     puzzle: { opts: ['2 morceaux', '4 morceaux', '6 morceaux', '9 morceaux'], key: 'puzzleWins' },
     fil: { opts: ['Très facile', 'Facile', 'Moyen', 'Difficile', 'Très difficile'], key: 'mazeWins' }
   };
@@ -481,8 +481,12 @@
     { e: '🪄', n: 'la baguette magique' }, { e: '🌹', n: 'la rose' }, { e: '🎀', n: 'le nœud' },
     { e: '🐸', n: 'la grenouille' }, { e: '👗', n: 'la robe' }, { e: '🪞', n: 'le miroir' }
   ];
-  const MEMORY_LEVELS = [3, 4, 5, 6];
-  const memoryPairs = () => MEMORY_LEVELS[Math.min(store.get('memoryWins', 0), MEMORY_LEVELS.length - 1)];
+  // 3 à 10 paires ; le niveau monte seul jusqu'à 6 paires, 8 et 10 se choisissent dans le coin des parents
+  const MEMORY_LEVELS = [3, 4, 5, 6, 8, 10];
+  const MEMORY_AUTO_MAX = 3;
+  if (store.get('memLevel', null) == null) store.set('memLevel', Math.min(store.get('memoryWins', 0), MEMORY_AUTO_MAX));
+  const memoryPairs = () => MEMORY_LEVELS[Math.min(store.get('memLevel', 0), MEMORY_LEVELS.length - 1)];
+  const MEM_DELAYS = { long: 2400, normal: 1400, court: 800 };
   const MEMORY_THEMES = [
     { id: 'princesse', e: '👑', n: 'les princesses', bg: '#FFD6EC', b1: '#F48FC4', b2: '#B48BE8', bd: '#C9579A', items: PRINCESS },
     { id: 'animaux', e: '🐶', n: 'les animaux', bg: '#FFE9C7', b1: '#FFB458', b2: '#F07F3C', bd: '#C25E1F', items: [
@@ -521,46 +525,66 @@
   }
   function memoryBoard(G, f, theme) {
     G.memTheme = theme.id;
-    const pairs = memoryPairs();
-    const set = shuffle(theme.items).slice(0, pairs);
-    const deck = shuffle([...set, ...set]);
+    const g = settings.memGroup === 3 ? 3 : 2;                 // paires ou trios
+    const groups = g === 3 ? Math.min(memoryPairs(), 4) : memoryPairs();
+    const set = shuffle(theme.items).slice(0, groups);
+    const deck = shuffle(Array.from({ length: g }, () => set).flat());
+    const n = deck.length;
+    const cols = n <= 8 ? 2 : n <= 12 ? 3 : 4;
     const grid = el('div', 'mgrid');
-    grid.style.setProperty('--cols', pairs === 6 ? 3 : 2);
-    grid.style.setProperty('--rows', pairs === 6 ? 4 : pairs);
+    grid.style.setProperty('--cols', cols);
+    grid.style.setProperty('--rows', Math.ceil(n / cols));
+    grid.style.setProperty('--msz', n <= 8 ? 'clamp(44px, 9vh, 80px)' : n <= 12 ? 'clamp(36px, 7vh, 64px)' : 'clamp(30px, 5.5vh, 48px)');
     grid.style.setProperty('--mb1', theme.b1); grid.style.setProperty('--mb2', theme.b2); grid.style.setProperty('--mbd', theme.bd);
-    let open = [], found = 0, busy = false;
-    deck.forEach((it, i) => {
+    const delay = MEM_DELAYS[settings.memDelay] || 1400;
+    const word = g === 3 ? 'Trois' : 'Deux';
+    let open = [], found = 0, busy = true;
+    const cards = deck.map((it, i) => {
       const c = el('button', 'mcard', `<span class="mface mback"></span><span class="mface mfront">${it.e}</span>`);
       c.setAttribute('aria-label', 'carte');
-      c.style.animationDelay = (i * 50) + 'ms';
+      c.style.animationDelay = (i * 40) + 'ms';
       c.onclick = async () => {
         if (f !== G.flow || busy || c.classList.contains('open')) return;
         audio(); sfx.tap();
         c.classList.add('open');
         open.push({ c, it });
         say(cap(it.n));
-        if (open.length < 2) return;
+        const same = open.every(o => o.it === open[0].it);
+        if (same && open.length < g) return;
         busy = true;
-        const [a, b] = open; open = [];
-        if (a.it === b.it) {
+        const grp = open; open = [];
+        if (same) {
           await sleep(500);
-          a.c.classList.add('found'); b.c.classList.add('found');
+          grp.forEach(o => o.c.classList.add('found'));
           sfx.good(); found++;
-          await say(`${praise()} Deux fois ${it.n} !`);
+          await say(`${praise()} ${word} fois ${it.n} !`);
           busy = false;
-          if (found === pairs && f === G.flow) { await sleep(300); G.n = G.total; nextQ(); }
+          if (found === groups && f === G.flow) { await sleep(300); G.n = G.total; nextQ(); }
         } else {
-          await sleep(1400);
-          a.c.classList.remove('open'); b.c.classList.remove('open');
+          await sleep(delay);
+          grp.forEach(o => o.c.classList.remove('open'));
           busy = false;
         }
       };
       grid.append(c);
+      return c;
     });
     $('#stage').append(grid);
-    G.prompt = (G.opts.harder ? 'Encore plus de cartes ! ' : '') + 'Retourne les cartes, et trouve deux images pareilles !';
-    $('#caption').textContent = 'Trouve les paires';
-    say(G.prompt);
+    $('#caption').textContent = g === 3 ? 'Trouve les trios' : 'Trouve les paires';
+    G.prompt = (G.opts.harder ? 'Encore plus de cartes ! ' : '') + `Retourne les cartes, et trouve ${g === 3 ? 'trois' : 'deux'} images pareilles !`;
+    (async () => {
+      if (settings.memPeek > 0) {
+        await sleep(500);
+        if (f !== G.flow) return;
+        cards.forEach(c => c.classList.add('open'));
+        await Promise.all([say('Regarde bien les cartes !'), sleep(settings.memPeek * 1000)]);
+        if (f !== G.flow) return;
+        cards.forEach(c => c.classList.remove('open'));
+        await sleep(500);
+      }
+      busy = false;
+      if (f === G.flow) say(G.prompt);
+    })();
   }
 
   // ---------- Puzzles ----------
@@ -1758,7 +1782,7 @@
 
   function finish() {
     if (G.def.counting) store.set('countLevel', Math.min(settings.countMax, countLevel() + 2));
-    if (G.id === 'memory') { const w = store.get('memoryWins', 0); G.leveledUp = w < MEMORY_LEVELS.length - 1; store.set('memoryWins', w + 1); }
+    if (G.id === 'memory') { const w = store.get('memLevel', 0); G.leveledUp = w < MEMORY_AUTO_MAX; if (G.leveledUp) store.set('memLevel', w + 1); }
     if (G.id === 'fil') { const w = store.get('mazeWins', 0); G.leveledUp = w < MAZE_LEVELS.length - 1; store.set('mazeWins', w + 1); }
     G.memLocked = false;
     if (G.id === 'memory' && settings.memLimit > 0) {
@@ -1944,12 +1968,18 @@
   $('#set-countmax').onchange = e => { settings.countMax = +e.target.value; saveSettings(); refreshParentInfo(); };
   $('#set-letters').onchange = e => { settings.letters = e.target.value; saveSettings(); };
   $('#set-home').onchange = e => { settings.homeMode = e.target.value; saveSettings(); homeIds = null; };
+  $('#set-mempeek').onchange = e => { settings.memPeek = +e.target.value; saveSettings(); };
+  $('#set-memdelay').onchange = e => { settings.memDelay = e.target.value; saveSettings(); };
+  $('#set-memgroup').onchange = e => { settings.memGroup = +e.target.value; saveSettings(); };
   $('#set-memlimit').onchange = e => { settings.memLimit = +e.target.value; saveSettings(); };
   $('#btn-mem-unlock').onclick = () => { store.set('memLock', 0); store.set('memPlays', 0); homeIds = null; refreshParentInfo(); };
   $('#set-limit').onchange = e => { settings.timeLimit = +e.target.value; saveSettings(); refreshParentInfo(); };
   $('#btn-test-voice').onclick = () => { audio(); sfx.good(); say(settings.name ? `Bonjour ${settings.name} ! Où est la carotte ?` : 'Bonjour ! Où est la carotte ?'); };
   $('#btn-count-reset').onclick = () => { store.set('countLevel', 5); refreshParentInfo(); };
   function renderLevels() {
+    $('#set-mempeek').value = String(settings.memPeek);
+    $('#set-memdelay').value = settings.memDelay;
+    $('#set-memgroup').value = String(settings.memGroup);
     const box = $('#set-levels'); if (!box) return;
     box.innerHTML = '';
     ORDER.filter(id => LEVEL_CFG[id]).forEach(id => {
