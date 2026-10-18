@@ -1849,13 +1849,14 @@
     store.set('usage', usage);
     if (limitReached()) {
       if (screen === 'game') pendingRest = true; // on laisse finir la partie en cours
-      else goRest();
+      else if (screen !== 'album') goRest(); // l'album reste ouvert, même après la limite
     }
   }, 5000);
   function goRest() {
     hush(); pendingRest = false; releaseAwake();
     show('rest');
-    say(`C'est l'heure de faire une pause${settings.name ? ' ' + settings.name : ''}. À tout à l'heure !`);
+    const nm = settings.name ? ' ' + settings.name : '';
+    say(`C'est l'heure de faire une pause${nm}. Tu peux encore regarder ton album, si tu veux !`);
   }
 
   // ---------- Écran allumé pendant le jeu ----------
@@ -2017,6 +2018,7 @@
   $('#btn-album').onclick = () => { sfx.tap(); openAlbum(); };
   $('#btn-end-album').onclick = () => { sfx.tap(); openAlbum(); };
   $('#btn-album-home').onclick = () => { sfx.tap(); goHome(); };
+  $('#btn-rest-album').onclick = () => { sfx.tap(); openAlbum(); };
   let resetArmed = 0;
   $('#btn-album-reset').onclick = e => {
     if (Date.now() - resetArmed > 3000) { resetArmed = Date.now(); e.target.textContent = 'Toucher encore pour vider'; setTimeout(() => { e.target.textContent = "Vider l'album"; }, 3000); return; }

@@ -26,7 +26,7 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 
 **Accueil** : 9 jeux tirés au hasard à chaque ouverture de l'appli, en priorité ceux qui n'étaient pas affichés la fois précédente (réglable : « Tous les jeux »). Les jeux marqués ⭐ dans le coin des parents sont toujours affichés (Memory par défaut).
 
-**Album d'autocollants** (📒 en haut de l'accueil) : chaque partie finie fait gagner un autocollant surprise (60 différents). On le colle sur 4 décors (prairie, mer, château, espace) et on le déplace au doigt ; le faire glisser vers le bas le remet dans la réserve.
+**Album d'autocollants** (📒 en haut de l'accueil) : chaque partie finie fait gagner un autocollant surprise (60 différents). On le colle sur 4 décors (prairie, mer, château, espace) et on le déplace au doigt ; le faire glisser vers le bas le remet dans la réserve. L'album reste accessible depuis l'écran « C'est la pause » une fois le temps d'écran écoulé.
 
 Une partie = 5 questions (3 pour Compter, 3 mots pour Lire, une grille pour Memory et Puzzles), puis des confettis.
 En cas d'erreur, l'image se grise et la voix dit ce que c'était (« Ça, c'est le brocoli. Où est la carotte ? ») : l'enfant finit toujours par trouver.
@@ -54,7 +54,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v12` → `v13`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v13` → `v14`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique

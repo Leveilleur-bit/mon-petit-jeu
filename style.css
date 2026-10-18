@@ -522,6 +522,9 @@ svg path.stroke { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-li
 .time-btns .tb { display: flex; gap: 8px; }
 .pill-text:disabled { opacity: .4; }
 
+.rest-album { width: 104px; height: 104px; border: 0; border-radius: 30px; background: var(--rose); box-shadow: 0 8px 0 var(--rose-dk); font-size: 56px; line-height: 1; display: grid; place-items: center; animation: breathe 2s ease-in-out infinite; }
+.rest-album:active { transform: translateY(6px); box-shadow: 0 2px 0 var(--rose-dk); animation: none; }
+
 /* ---------- Fin / pause ---------- */
 .big-star { font-size: clamp(110px, 32vw, 170px); line-height: 1; animation: star-in 1s cubic-bezier(.3, 1.6, .5, 1); }
 .end-title { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 52px; line-height: 1; }
