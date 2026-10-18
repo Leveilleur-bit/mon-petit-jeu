@@ -505,23 +505,36 @@
       { e: '🧁', n: 'le petit gâteau' }, { e: '🍭', n: 'la sucette' }, { e: '🍦', n: 'la glace' }, { e: '🍩', n: 'le beignet' }, { e: '🍪', n: 'le biscuit' },
       { e: '🍫', n: 'le chocolat' }, { e: '🎂', n: "le gâteau d'anniversaire" }, { e: '🍬', n: 'le bonbon' }, { e: '🥞', n: 'les crêpes' }, { e: '🍰', n: 'la part de gâteau' }] }
   ];
-  function memoryGame(G, f) {
-    const th = MEMORY_THEMES.find(t => t.id === G.opts.theme);
-    if (th) { memoryBoard(G, f, th); return; }
+  // Écran de choix (thèmes de memory, images de puzzle) : ce qui est déjà fait est marqué ✓
+  // et ne peut pas être repris tant que tout n'a pas été fait.
+  function picker(G, f, items, doneKey, keyOf, prompt, caption, onPick) {
+    let done = store.get(doneKey, []);
+    if (items.every(it => done.includes(keyOf(it)))) { done = []; store.set(doneKey, []); }
     const stage = $('#stage');
     const grid = el('div', 'pzpick');
-    MEMORY_THEMES.forEach((t, i) => {
-      const b = el('button', 'pzthumb', t.e);
-      b.style.setProperty('--bg', t.bg);
+    items.forEach((it, i) => {
+      const isDone = done.includes(keyOf(it));
+      const b = el('button', 'pzthumb' + (isDone ? ' done' : ''), it.e + (isDone ? '<span class="pz-ok">✓</span>' : ''));
+      b.style.setProperty('--bg', it.bg);
       b.style.animationDelay = (i * 50) + 'ms';
-      b.setAttribute('aria-label', t.n);
-      b.onclick = () => { if (f !== G.flow) return; audio(); sfx.tap(); stage.innerHTML = ''; memoryBoard(G, f, t); };
+      b.setAttribute('aria-label', it.n);
+      b.onclick = () => {
+        if (f !== G.flow) return;
+        audio();
+        if (isDone) { sfx.soft(); b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope'); say(`Celui-là, tu l'as déjà fait ! Choisis-en un autre.`); return; }
+        sfx.tap(); stage.innerHTML = ''; onPick(it, i);
+      };
       grid.append(b);
     });
     stage.append(grid);
-    $('#caption').textContent = 'Choisis tes cartes';
-    G.prompt = 'Choisis tes cartes !';
+    $('#caption').textContent = caption;
+    G.prompt = (G.opts.harder ? 'Bravo ! Le prochain sera un peu plus difficile. ' : '') + (done.length ? prompt.replace(' !', ' ! Un que tu n\'as pas encore fait.') : prompt);
     say(G.prompt);
+  }
+  const markDone = (key, v) => { const d = store.get(key, []); if (!d.includes(v)) store.set(key, d.concat(v)); };
+
+  function memoryGame(G, f) {
+    picker(G, f, MEMORY_THEMES, 'memThemesDone', t => t.id, 'Choisis tes cartes !', 'Choisis tes cartes', t => memoryBoard(G, f, t));
   }
   function memoryBoard(G, f, theme) {
     G.memTheme = theme.id;
@@ -559,7 +572,7 @@
           sfx.good(); found++;
           await say(`${praise()} ${word} fois ${it.n} !`);
           busy = false;
-          if (found === groups && f === G.flow) { await sleep(300); G.n = G.total; nextQ(); }
+          if (found === groups && f === G.flow) { markDone('memThemesDone', theme.id); await sleep(300); G.n = G.total; nextQ(); }
         } else {
           await sleep(delay);
           grp.forEach(o => o.c.classList.remove('open'));
@@ -597,32 +610,7 @@
   const PUZZLE_LEVELS = [[1, 2], [2, 2], [3, 2], [3, 3]];
   const puzzleGrid = () => PUZZLE_LEVELS[Math.min(store.get('puzzleWins', 0), PUZZLE_LEVELS.length - 1)];
   function puzzleGame(G, f) {
-    const stage = $('#stage');
-    if (G.opts.next) { // « Suivant » : image suivante, sans repasser par le choix
-      const i = (store.get('lastPuzzle', -1) + 1) % PUZZLES.length;
-      store.set('lastPuzzle', i);
-      buildPuzzle(G, f, PUZZLES[i]);
-      return;
-    }
-    const grid = el('div', 'pzpick');
-    PUZZLES.forEach((p, i) => {
-      const b = el('button', 'pzthumb', p.e);
-      b.style.setProperty('--bg', p.bg);
-      b.style.animationDelay = (i * 50) + 'ms';
-      b.setAttribute('aria-label', p.n);
-      b.onclick = () => {
-        if (f !== G.flow) return;
-        audio(); sfx.tap();
-        stage.innerHTML = '';
-        store.set('lastPuzzle', i);
-        buildPuzzle(G, f, p);
-      };
-      grid.append(b);
-    });
-    stage.append(grid);
-    G.prompt = 'Choisis ton puzzle !';
-    $('#caption').textContent = 'Choisis ton puzzle';
-    say(G.prompt);
+    picker(G, f, PUZZLES, 'puzzleDone', p => p.n, 'Choisis ton puzzle !', 'Choisis ton puzzle', p => buildPuzzle(G, f, p));
   }
   function puzzleImage(p, S) {
     const cv = document.createElement('canvas');
@@ -737,6 +725,7 @@
       say('Regarde, il va ici !');
     }
     async function win() {
+      markDone('puzzleDone', p.n);
       board.classList.add('complete');
       await sleep(400);
       await say(`Bravo ! C'est ${p.n} !`);
@@ -1493,7 +1482,7 @@
   ];
   const pron = n => /^la /.test(n) || ['la souris', 'la poule', 'la chenille', 'la vache'].includes(n) ? 'elle' : 'il';
 
-  // ---------- Le bon chemin : un animal, trois chemins, un seul mène à son goûter ----------
+  // ---------- Le bon chemin : on fait glisser l'animal le long d'un chemin jusqu'à son goûter ----------
   const DECOYS = [
     { e: '🌲', n: 'au sapin' }, { e: '⛄', n: 'au bonhomme de neige' }, { e: '🍄', n: 'au champignon' },
     { e: '🪨', n: 'au caillou' }, { e: '🌻', n: 'au tournesol' }, { e: '🏠', n: 'à la maison' }
@@ -1501,7 +1490,8 @@
   const FIL_COLORS = ['#E5484D', '#1E63D6', '#E8A400'];
   const FIL_SAME = '#2E8B57';
   const MAZE_LEVELS = [
-    { mids: 1, colors: true }, { mids: 2, colors: true }, { mids: 2, colors: false }, { mids: 3, colors: false }, { mids: 4, colors: false }
+    { mids: 1, colors: true, cross: false }, { mids: 1, colors: true, cross: true }, { mids: 2, colors: true, cross: true },
+    { mids: 2, colors: false, cross: true }, { mids: 3, colors: false, cross: true }
   ];
   const mazeLevel = () => MAZE_LEVELS[Math.min(store.get('mazeWins', 0), MAZE_LEVELS.length - 1)];
 
@@ -1528,7 +1518,7 @@
   }
 
   function mazeGame(G, f) {
-    const lvl = mazeLevel();
+    const L = mazeLevel();
     const wrap = el('div', 'maze');
     $('#stage').append(wrap);
     const W = wrap.clientWidth, H = wrap.clientHeight;
@@ -1540,116 +1530,160 @@
     x.scale(dpr, dpr);
 
     const meal = pickNew(MEALS, G, m => m.n);
-    const ends = shuffle([{ e: meal.f, n: '', win: true }, ...shuffle(DECOYS).slice(0, 2)]);
-    ends.forEach(E => { if (E.win) E.n = /^le /.test(meal.fn) ? 'au ' + meal.fn.slice(3) : 'à ' + meal.fn; });
-    const order = shuffle([0, 1, 2]);
-    if (order.every((v, i) => v === i)) order.push(order.shift());
-    const topY = Math.min(58, H * 0.09), botY = H - Math.min(64, H * 0.1);
-    const sx = [W * 0.32, W * 0.5, W * 0.68], ex = [W * 0.18, W * 0.5, W * 0.82];
-    const y0 = topY + 52, y1 = botY - 36;
+    const ends = shuffle([{ e: meal.f, win: true, n: /^le /.test(meal.fn) ? 'au ' + meal.fn.slice(3) : 'à ' + meal.fn }, ...shuffle(DECOYS).slice(0, 2)]);
+    let order = [0, 1, 2];
+    if (L.cross) { order = shuffle(order); if (order.every((v, i) => v === i)) order.push(order.shift()); }
+    const S = [W / 2, Math.min(70, H * 0.11)];
+    const botY = H - Math.min(60, H * 0.09), y1 = botY - 40;
+    const ex = [W * 0.17, W * 0.5, W * 0.83];
+    const fan = [-0.24, 0, 0.24];
     const paths = [0, 1, 2].map(i => {
-      const way = [[sx[i], y0]];
-      for (let k = 1; k <= lvl.mids; k++) {
-        const yy = y0 + (y1 - y0) * (k / (lvl.mids + 1)) + (Math.random() - 0.5) * (y1 - y0) / (lvl.mids + 1) * 0.6;
-        way.push([W * (0.1 + Math.random() * 0.8), yy]);
+      const way = [S, [W / 2 + fan[i] * W, S[1] + Math.min(80, H * 0.12)]];
+      const top = way[1][1];
+      for (let k = 1; k <= L.mids; k++) {
+        const yy = top + (y1 - top) * (k / (L.mids + 1)) + (Math.random() - 0.5) * (y1 - top) / (L.mids + 1) * 0.5;
+        const xx = L.cross ? W * (0.1 + Math.random() * 0.8) : (way[1][0] * (1 - k / (L.mids + 1)) + ex[order[i]] * (k / (L.mids + 1))) + (Math.random() - 0.5) * W * 0.1;
+        way.push([xx, yy]);
       }
       way.push([ex[order[i]], y1]);
-      return { end: ends[order[i]], pts: catmull(way, 4), color: lvl.colors ? FIL_COLORS[i] : FIL_SAME, p: 0, done: false };
+      return { end: ends[order[i]], pts: catmull(way, 4), color: L.colors ? FIL_COLORS[i] : FIL_SAME, done: false };
     });
-    const lw = Math.max(9, Math.min(14, W / 32));
-    const tol = Math.max(26, lw * 2.4);
-    let act = null, sprite = null, finished = false, misses = 0;
+    const lw = Math.max(12, Math.min(18, W / 24));
+    const tol = Math.max(34, lw * 2.6);
+    let act = null, p = 0, pos = S, dragging = false, finished = false, busy = false, hand = null, lastTouch = performance.now();
     const fontE = s => `${s}px "Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif`;
     const poly = pts => { x.beginPath(); x.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) x.lineTo(pts[i][0], pts[i][1]); };
 
     function draw() {
       x.clearRect(0, 0, W, H);
       x.lineCap = 'round'; x.lineJoin = 'round';
-      paths.forEach(P => { x.globalAlpha = P.done ? 0.2 : 1; x.strokeStyle = P.color; x.lineWidth = lw; poly(P.pts); x.stroke(); });
-      x.globalAlpha = 1;
+      // les chemins : une route claire avec une bande de couleur
       paths.forEach(P => {
-        if (P.done || P.p === 0) return;
-        x.strokeStyle = '#FFFFFF'; x.lineWidth = lw * 0.45; poly(P.pts.slice(0, P.p + 1)); x.stroke();
+        x.globalAlpha = P.done ? 0.25 : 1;
+        x.strokeStyle = '#E9EEF6'; x.lineWidth = lw * 2; poly(P.pts); x.stroke();
+        x.strokeStyle = P.color; x.lineWidth = lw; poly(P.pts); x.stroke();
       });
-      if (!finished) paths.forEach(P => {
-        if (P.done) return;
-        const h = P.pts[P.p];
-        x.fillStyle = P.p === 0 ? '#3F9A43' : '#EF4F6C'; x.strokeStyle = '#fff'; x.lineWidth = 4;
-        x.beginPath(); x.arc(h[0], h[1], lw * 1.2, 0, Math.PI * 2); x.fill(); x.stroke();
-      });
+      x.globalAlpha = 1;
+      if (act && p > 0) { x.strokeStyle = 'rgba(255,255,255,.9)'; x.lineWidth = lw * 0.4; x.setLineDash([2, 10]); poly(act.pts.slice(0, p + 1)); x.stroke(); x.setLineDash([]); }
       x.textAlign = 'center'; x.textBaseline = 'middle';
-      if (!sprite) { x.font = fontE(54); x.fillText(meal.a, W / 2, topY); }
+      // arrivées : le goûter brille, les autres sont plus petits
       ends.forEach((E, k) => {
         const P = paths.find(q => q.end === E);
-        x.globalAlpha = P && P.done && !E.win ? 0.35 : 1;
-        x.font = fontE(48); x.fillText(E.e, ex[k], botY + 6);
+        if (E.win) {
+          const t = performance.now() / 500;
+          x.fillStyle = `rgba(255,200,61,${0.35 + 0.15 * Math.sin(t)})`;
+          x.beginPath(); x.arc(ex[k], botY, 38, 0, Math.PI * 2); x.fill();
+          x.fillStyle = '#000'; x.font = fontE(52); x.fillText(E.e, ex[k], botY + 4);
+        } else {
+          x.globalAlpha = P && P.done ? 0.35 : 0.9;
+          x.fillStyle = '#000'; x.font = fontE(40); x.fillText(E.e, ex[k], botY + 4);
+          x.globalAlpha = 1;
+        }
       });
-      x.globalAlpha = 1;
-      if (sprite) { x.font = fontE(50); x.fillText(meal.a, sprite.pos[0], sprite.pos[1] - 10); }
+      // l'animal, avec un cercle qui invite à le toucher
+      if (!finished && !dragging) {
+        const t = performance.now() / 400;
+        x.strokeStyle = 'rgba(63,154,67,.85)'; x.lineWidth = 5;
+        x.beginPath(); x.arc(pos[0], pos[1], 34 + 4 * Math.sin(t), 0, Math.PI * 2); x.stroke();
+      }
+      x.fillStyle = '#000'; x.font = fontE(dragging ? 60 : 54); x.fillText(meal.a, pos[0], pos[1]);
+      if (hand) { x.font = fontE(44); x.fillText('👆', hand[0] + 14, hand[1] + 30); }
     }
-    function ride(P, back) {
+    let raf = 0;
+    const loop = () => { if (f !== G.flow) return; draw(); raf = requestAnimationFrame(loop); };
+    loop();
+
+    // petite main qui montre le geste, au début et quand rien ne se passe
+    function showHand() {
+      if (finished || dragging || busy) return;
+      const P = pick(paths.filter(q => !q.done));
+      let k = 0;
+      const pts = act && act === P ? P.pts.slice(p) : P.pts;
+      const step = () => {
+        if (f !== G.flow || dragging || finished) { hand = null; return; }
+        hand = pts[Math.min(k, pts.length - 1)];
+        k += 3;
+        if (k < Math.min(pts.length, 70)) requestAnimationFrame(step); else setTimeout(() => { hand = null; }, 300);
+      };
+      step();
+    }
+    const idle = setInterval(() => {
+      if (f !== G.flow) { clearInterval(idle); return; }
+      if (!dragging && !finished && !busy && performance.now() - lastTouch > 7000) { lastTouch = performance.now(); showHand(); }
+    }, 1000);
+
+    const ptr = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    cv.addEventListener('pointerdown', e => {
+      if (finished || busy || f !== G.flow) return;
+      e.preventDefault(); audio();
+      lastTouch = performance.now();
+      const q = ptr(e);
+      if (Math.hypot(q[0] - pos[0], q[1] - pos[1]) < 70) {
+        try { cv.setPointerCapture(e.pointerId); } catch (err) { /* rien */ }
+        dragging = true; hand = null;
+      } else say(`Pose ton doigt sur ${meal.n}, et fais-${pron(meal.n) === 'elle' ? 'la' : 'le'} glisser sur un chemin !`);
+    });
+    cv.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      lastTouch = performance.now();
+      const q = ptr(e);
+      if (!act) {
+        // au départ : on choisit le chemin le plus proche du doigt
+        let best = null, bd = tol, bi = 0;
+        paths.forEach(P => { if (P.done) return; for (let i = 3; i < Math.min(P.pts.length, 40); i++) { const d = Math.hypot(P.pts[i][0] - q[0], P.pts[i][1] - q[1]); if (d < bd) { bd = d; best = P; bi = i; } } });
+        if (best) { act = best; p = bi; pos = act.pts[p]; }
+        return;
+      }
+      let bi = -1, bd = tol;
+      for (let i = Math.max(0, p - 25); i <= Math.min(act.pts.length - 1, p + 25); i++) {
+        const d = Math.hypot(act.pts[i][0] - q[0], act.pts[i][1] - q[1]);
+        if (d < bd) { bd = d; bi = i; }
+      }
+      if (bi < 0) return;
+      if (Math.floor(bi / 12) > Math.floor(p / 12)) note(480 + bi * 2.5, 0, 0.05, 'sine', 0.05);
+      p = bi; pos = act.pts[p];
+      if (p < 3) { act = null; p = 0; pos = S; return; }   // revenu au départ : on peut changer de chemin
+      if (p >= act.pts.length - 4) arrive();
+    });
+    const up = () => { dragging = false; };
+    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+
+    function slide(pts, dur) {
       return new Promise(res => {
-        const t0 = performance.now(), dur = 1500;
-        sprite = { pos: P.pts[0] };
+        const t0 = performance.now();
         const step = t => {
           const k = Math.max(0, Math.min(1, (t - t0) / dur));
-          sprite.pos = P.pts[Math.floor(k * (P.pts.length - 1))];
-          draw();
-          if (k < 1 && f === G.flow) requestAnimationFrame(step);
-          else { if (back) sprite = null; draw(); res(); }
+          pos = pts[Math.floor(k * (pts.length - 1))];
+          if (k < 1 && f === G.flow) requestAnimationFrame(step); else res();
         };
         requestAnimationFrame(step);
       });
     }
-    if (location.hash === '#test') window.__maze = { paths, rect: () => cv.getBoundingClientRect() };
-
-    const pos = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
-    function advance(q) {
-      const P = act; if (!P) return;
-      let best = -1;
-      const lim = Math.min(P.pts.length - 1, P.p + 22);
-      for (let i = P.p; i <= lim; i++) if (Math.hypot(P.pts[i][0] - q[0], P.pts[i][1] - q[1]) < tol) best = i;
-      if (best > P.p) {
-        if (Math.floor(best / 12) > Math.floor(P.p / 12)) note(480 + best * 2.5, 0, 0.05, 'sine', 0.05);
-        P.p = best; draw();
-        if (P.p >= P.pts.length - 4) arrive(P);
-      }
-    }
-    cv.addEventListener('pointerdown', e => {
-      if (finished || f !== G.flow || sprite) return;
-      e.preventDefault(); audio();
-      try { cv.setPointerCapture(e.pointerId); } catch (err) { /* rien */ }
-      const q = pos(e);
-      let best = null, bd = tol * 1.6;
-      paths.forEach(P => { if (P.done) return; const h = P.pts[P.p]; const d = Math.hypot(h[0] - q[0], h[1] - q[1]); if (d < bd) { bd = d; best = P; } });
-      if (best) { act = best; misses = 0; advance(q); }
-      else if (++misses >= 2) { misses = 0; say('Pose ton doigt sur un point vert, et suis le chemin !'); }
-    });
-    cv.addEventListener('pointermove', e => { if (act) advance(pos(e)); });
-    const up = () => { act = null; };
-    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
-
-    async function arrive(P) {
-      act = null;
-      P.p = P.pts.length - 1;
-      await ride(P, !P.end.win);
-      if (f !== G.flow) return;
+    async function arrive() {
+      dragging = false; busy = true;
+      const P = act;
+      pos = P.pts[P.pts.length - 1];
       if (P.end.win) {
-        finished = true; draw();
+        finished = true;
         sfx.good(); confetti();
         await say(`Miam ! ${cap(meal.n)} a trouvé ${meal.fn} ! Bravo !`);
+        cancelAnimationFrame(raf); clearInterval(idle);
         if (f === G.flow) { G.n = G.total; nextQ(); }
-      } else {
-        P.done = true; P.p = 0; draw();
-        sfx.soft();
-        say(`Oh ! Ce chemin va ${P.end.n}. Essaie un autre chemin !`);
+        return;
       }
+      sfx.soft();
+      await say(`Oh ! Ce chemin va ${P.end.n}. On retourne au départ, et on essaie un autre chemin !`);
+      if (f !== G.flow) return;
+      await slide(P.pts.slice().reverse(), 1200);
+      P.done = true; act = null; p = 0; pos = S; busy = false;
+      lastTouch = performance.now() - 5000;
     }
 
-    draw();
-    $('#caption').textContent = 'Trouve le bon chemin';
-    G.prompt = `${cap(meal.n)} a faim ! Aide-${pron(meal.n) === 'elle' ? 'la' : 'le'} à trouver ${meal.fn}. Choisis un chemin, et suis-le avec ton doigt !`;
-    say(G.prompt);
+    if (location.hash === '#test') window.__maze = { paths, S, rect: () => cv.getBoundingClientRect() };
+    $('#caption').textContent = `Fais glisser ${meal.n} jusqu'${ends.find(E => E.win).n}`;
+    G.prompt = `${cap(meal.n)} a faim ! ${cap(meal.fn)} est en bas. Pose ton doigt sur ${meal.n}, et fais-${pron(meal.n) === 'elle' ? 'la' : 'le'} glisser sur le bon chemin !`;
+    G.replay = () => { audio(); say(G.prompt); showHand(); };
+    (async () => { await say(G.prompt); if (f === G.flow) showHand(); })();
   }
 
   // ---------- Écrans ----------
@@ -1849,14 +1883,21 @@
     store.set('usage', usage);
     if (limitReached()) {
       if (screen === 'game') pendingRest = true; // on laisse finir la partie en cours
-      else if (screen !== 'album') goRest(); // l'album reste ouvert, même après la limite
+      else if (screen === 'album') {          // après la limite, l'album reste ouvert 5 minutes
+        usage.albumSec = (usage.albumSec || 0) + 5; store.set('usage', usage);
+        if (usage.albumSec >= ALBUM_AFTER) goRest();
+      } else goRest();
     }
   }, 5000);
+  const ALBUM_AFTER = 300;
   function goRest() {
     hush(); pendingRest = false; releaseAwake();
     show('rest');
     const nm = settings.name ? ' ' + settings.name : '';
-    say(`C'est l'heure de faire une pause${nm}. Tu peux encore regarder ton album, si tu veux !`);
+    freshUsage();
+    const albumLeft = (usage.albumSec || 0) < ALBUM_AFTER;
+    $('#btn-rest-album').hidden = !albumLeft;
+    say(albumLeft ? `C'est l'heure de faire une pause${nm}. Tu peux encore regarder ton album, si tu veux !` : `C'est l'heure de faire une pause${nm}. L'album aussi se repose. À tout à l'heure !`);
   }
 
   // ---------- Écran allumé pendant le jeu ----------
@@ -2024,7 +2065,7 @@
     if (Date.now() - resetArmed > 3000) { resetArmed = Date.now(); e.target.textContent = 'Toucher encore pour vider'; setTimeout(() => { e.target.textContent = "Vider l'album"; }, 3000); return; }
     saveStickers([]); store.set('albumWelcome', false); resetArmed = 0; e.target.textContent = "Vider l'album"; refreshParentInfo();
   };
-  $('#btn-next').onclick = () => { sfx.tap(); startGame(G.id, { next: true, harder: !!G.leveledUp, theme: G.memTheme, nameIdx: G.id === 'prenom' ? (G.nameIdx ?? -1) + 1 : undefined }); };
+  $('#btn-next').onclick = () => { sfx.tap(); startGame(G.id, { next: true, harder: !!G.leveledUp, nameIdx: G.id === 'prenom' ? (G.nameIdx ?? -1) + 1 : undefined }); };
   $('#btn-end-home').onclick = () => { sfx.tap(); goHome(); };
 
   // ---------- Hors connexion ----------
