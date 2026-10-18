@@ -519,6 +519,9 @@ svg path.stroke { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-li
 .subopts-title { margin: 0; font-weight: 800; }
 .subopts select { max-width: 55%; }
 
+.time-btns .tb { display: flex; gap: 8px; }
+.pill-text:disabled { opacity: .4; }
+
 /* ---------- Fin / pause ---------- */
 .big-star { font-size: clamp(110px, 32vw, 170px); line-height: 1; animation: star-in 1s cubic-bezier(.3, 1.6, .5, 1); }
 .end-title { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 52px; line-height: 1; }

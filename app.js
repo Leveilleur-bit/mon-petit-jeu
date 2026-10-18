@@ -1935,7 +1935,11 @@
     renderLevels();
     freshUsage();
     const min = Math.floor(usage.sec / 60);
-    $('#usage-info').textContent = `Joué aujourd'hui : ${min} min` + (usage.extra ? ` (bonus +${usage.extra} min)` : '');
+    let info = `Joué aujourd'hui : ${min} min`;
+    if (usage.extra) info += ` · ${usage.extra > 0 ? '+' : '−'}${Math.abs(usage.extra)} min aujourd'hui`;
+    if (settings.timeLimit > 0) info += ` · reste ${Math.max(0, settings.timeLimit + usage.extra - min)} min`;
+    $('#usage-info').textContent = info;
+    $('#btn-less').disabled = settings.timeLimit > 0 && settings.timeLimit + usage.extra <= 0;
   }
   $('#set-volume').oninput = e => { settings.volume = +e.target.value; saveSettings(); };
   $('#set-rate').oninput = e => { settings.rate = +e.target.value; saveSettings(); };
@@ -1997,6 +2001,7 @@
     });
   }
   $('#btn-extra').onclick = () => { freshUsage(); usage.extra += 10; store.set('usage', usage); refreshParentInfo(); };
+  $('#btn-less').onclick = () => { freshUsage(); usage.extra = Math.max(-settings.timeLimit, usage.extra - 10); store.set('usage', usage); refreshParentInfo(); };
   $('#btn-parent-close').onclick = () => { saveSettings(); goHome(false); };
 
   // ---------- Boutons ----------

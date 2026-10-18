@@ -34,7 +34,7 @@ En cas d'erreur, l'image se grise et la voix dit ce que c'était (« Ça, c'est 
 ## Coin des parents
 
 Appui long (2 secondes) sur la petite roue en haut à droite de l'écran des jeux.
-Réglages : **difficulté jeu par jeu** (nombre d'images, formes seules ou avec couleurs, tracé facile ou précis, nombre de paires, de morceaux…), volume, vitesse de la voix, bruitages, prénom, autres prénoms à écrire, jeux affichés, « compter jusqu'à », lettres simples ou tout l'alphabet, jeux favoris ⭐, vider l'album, limite de temps d'écran par jour (avec « +10 min aujourd'hui »).
+Réglages : **difficulté jeu par jeu** (nombre d'images, formes seules ou avec couleurs, tracé facile ou précis, nombre de paires, de morceaux…), volume, vitesse de la voix, bruitages, prénom, autres prénoms à écrire, jeux affichés, « compter jusqu'à », lettres simples ou tout l'alphabet, jeux favoris ⭐, vider l'album, limite de temps d'écran par jour (avec « − 10 min » et « + 10 min » pour la journée).
 Tout est enregistré sur le téléphone uniquement.
 
 ## Mettre en ligne (GitHub Pages)
@@ -54,7 +54,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v11` → `v12`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v12` → `v13`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique
