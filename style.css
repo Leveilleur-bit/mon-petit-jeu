@@ -496,6 +496,25 @@ svg path.stroke { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-li
 .tile .lockdots i.on { background: var(--grass); box-shadow: none; }
 .tile.nope { animation: wobble .5s; }
 
+/* 4 choix */
+.choices.four { grid-template-columns: 1fr 1fr; }
+.choices.four .emo { font-size: clamp(54px, 10vh, 96px); }
+.choices.four .shape { width: min(30vw, 120px); }
+
+/* Le goûter */
+.meal { position: relative; border: 0; background: var(--card); border-radius: 50%; width: min(36vw, 150px); aspect-ratio: 1; max-width: 100%; box-shadow: 0 6px 0 var(--card-edge); display: grid; place-items: center; }
+.meal-a { font-size: min(20vw, 86px); line-height: 1; }
+.meal-bubble { position: absolute; right: -38px; top: -10px; min-width: 56px; height: 56px; padding: 0 8px; border-radius: 28px; background: #FFF3C4; box-shadow: 0 4px 0 var(--sun-dk); display: grid; place-items: center; font: 800 32px/1 var(--f-display); color: var(--sun-dk); }
+.meal.eat { animation: joy .8s; }
+.meal.eat .meal-bubble { background: var(--leaf-bg); box-shadow: 0 4px 0 var(--grass); font-size: 34px; animation: pop-in .4s cubic-bezier(.3, 1.8, .5, 1); }
+
+/* Coin des parents : niveaux */
+.levels { display: flex; flex-direction: column; gap: 4px; }
+.lvl-row { min-height: 44px; border-top: 1px solid var(--sky); padding-top: 4px; }
+.lvl-row:first-child { border-top: 0; }
+.lvl-row small { color: var(--ink-soft); font-weight: 600; }
+.lvl-row select { max-width: 52%; }
+
 /* ---------- Fin / pause ---------- */
 .big-star { font-size: clamp(110px, 32vw, 170px); line-height: 1; animation: star-in 1s cubic-bezier(.3, 1.6, .5, 1); }
 .end-title { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 52px; line-height: 1; }

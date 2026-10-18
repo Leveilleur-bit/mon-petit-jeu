@@ -19,8 +19,8 @@
   // ---------- Réglages ----------
   const DEFAULTS = {
     volume: 1, rate: 0.9, effects: true, name: '', names: [],
-    countMax: 30, letters: 'simple', timeLimit: 0, memLimit: 5,
-    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true, fil: true },
+    countMax: 30, letters: 'simple', timeLimit: 0, memLimit: 5, levels: {},
+    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true, fil: true, gouter: true },
     homeMode: 'rotate', favs: ['memory']
   };
   const saved = store.get('settings', {});
@@ -176,7 +176,7 @@
         const is = x => (x.pl ? 'ce sont ' : "c'est ") + x.n;
         return {
           prompt: where(t), success: cap(is(t)) + ' !',
-          choices: shuffle([t, ...others(POTAGER, t, 2)]).map(o => ({
+          choices: shuffle([t, ...others(POTAGER, t, nOthers('potager'))]).map(o => ({
             html: `<span class="emo">${o.e}</span>`, label: o.n, correct: o === t,
             wrong: `Ça, ${is(o)}. ${where(t)}`
           }))
@@ -196,8 +196,26 @@
       make(G) { return { custom: puzzleGame }; }
     },
     formes: {
-      name: 'Formes', intro: 'Les formes !', icon: '🔷', color: '#1E9BD6', rounds: 5,
+      name: 'Formes et couleurs', intro: 'Les formes et les couleurs !', icon: '🔷', color: '#1E9BD6', rounds: 5,
       make(G) {
+        const L = lvl('formes');
+        if (L > 0) {
+          // jumelé : « Où est le triangle rouge ? » — pièges : même forme autre couleur, autre forme même couleur
+          const t = pickNew(SHAPES, G, x => x.n);
+          const col = pick(SHAPE_COL);
+          const other = pick(SHAPE_COL.filter(c => c !== col));
+          const oshape = pick(SHAPES.filter(x => x !== t));
+          const items = [{ s: t, c: col, ok: true }, { s: t, c: other }, { s: oshape, c: col }];
+          if (L === 2) items.push({ s: pick(SHAPES.filter(x => x !== t && x !== oshape)), c: pick(SHAPE_COL.filter(c => c !== col && c !== other)) });
+          const nm = o => `${o.s.n} ${o.s.g === 'f' ? o.c.f : o.c.m}`;
+          return {
+            prompt: `Où est ${nm(items[0])} ?`, success: `C'est ${nm(items[0])} !`,
+            choices: shuffle(items).map(o => ({
+              html: shapeSvg(o.s, o.c.hex), label: nm(o), correct: !!o.ok,
+              wrong: `Ça, c'est ${nm(o)}. Cherche ${nm(items[0])} !`
+            }))
+          };
+        }
         const t = pickNew(SHAPES, G, x => x.n);
         const cols = shuffle(SHAPE_COLORS);
         return {
@@ -214,10 +232,11 @@
       make(G) {
         const e = pickNew(SIZE_ITEMS, G, x => x);
         // grand, petit, moyen à tour de rôle (le moyen est le plus difficile, il arrive en 3e)
-        const target = ['grand', 'petit', 'moyen'][G.n % 3];
+        const easy = lvl('tailles') === 0;
+        const target = easy ? ['grand', 'petit'][G.n % 2] : ['grand', 'petit', 'moyen'][G.n % 3];
         const NAME = { grand: 'le plus grand', petit: 'le plus petit', moyen: 'le moyen' };
         const want = NAME[target];
-        const sizes = [{ s: 0.36, k: 'petit' }, { s: 0.64, k: 'moyen' }, { s: 1, k: 'grand' }];
+        const sizes = easy ? [{ s: 0.4, k: 'petit' }, { s: 1, k: 'grand' }] : [{ s: 0.36, k: 'petit' }, { s: 0.64, k: 'moyen' }, { s: 1, k: 'grand' }];
         return {
           prompt: target === 'moyen' ? 'Touche le moyen ! Pas le plus grand, pas le plus petit : celui du milieu.' : `Touche ${want} !`,
           caption: `Touche ${want} !`, success: `C'est ${want} !`, row: true, cls: 'sizes',
@@ -238,7 +257,7 @@
         return {
           visual: hint,
           prompt: `Où est l'ombre ${deN(t.n)} ?`, success: `C'est l'ombre ${deN(t.n)} !`,
-          choices: shuffle([t, ...others(SHADOWS, t, 2)]).map(o => ({
+          choices: shuffle([t, ...others(SHADOWS, t, nOthers('ombres'))]).map(o => ({
             html: `<span class="emo shadow">${o.e}</span>`, label: "l'ombre " + deN(o.n), correct: o === t,
             wrong: `Ça, c'est l'ombre ${deN(o.n)}. Cherche l'ombre ${deN(t.n)} !`
           }))
@@ -253,8 +272,29 @@
       name: 'Musique', intro: 'La musique !', icon: '🎵', color: '#16A3A3', rounds: 1, full: true,
       make(G) { return { custom: musicGame }; }
     },
+    gouter: {
+      name: 'Le goûter', intro: 'Le goûter des animaux !', icon: '🐰', color: '#F08A3C', rounds: 5,
+      make(G) {
+        const t = pickNew(MEALS, G, m => m.n);
+        const ani = el('button', 'meal', `<span class="meal-a">${t.a}</span><span class="meal-bubble">?</span>`);
+        ani.setAttribute('aria-label', 'Écouter encore');
+        ani.onclick = repeat;
+        const pr = pron(t.n);
+        return {
+          visual: ani,
+          prompt: `${cap(t.n)} a faim ! Qu'est-ce qu'${pr} mange ?`,
+          caption: `Qu'est-ce qu'${pr} mange ?`,
+          success: `Miam ! ${cap(t.n)} adore ${t.like} !`,
+          onCorrect: () => { $('.meal-bubble', ani).textContent = t.f; ani.classList.add('eat'); },
+          choices: shuffle([t, ...others(MEALS, t, nOthers('gouter'))]).map(o => ({
+            html: `<span class="emo">${o.f}</span>`, label: o.fn, correct: o === t,
+            wrong: `Ça, c'est ${o.fn}. ${cap(t.n)} préfère autre chose !`
+          }))
+        };
+      }
+    },
     fil: {
-      name: 'Le fil', intro: 'Qui va gagner la course ?', icon: '🏁', color: '#2E8B57', rounds: 1, full: true,
+      name: 'Le bon chemin', intro: 'Le bon chemin !', icon: '🛤️', color: '#2E8B57', rounds: 1, full: true,
       make(G) { return { custom: mazeGame }; }
     },
     prenom: {
@@ -268,10 +308,11 @@
     couleurs: {
       name: 'Couleurs', intro: 'Les couleurs !', icon: '🎨', color: '#8E44C9', rounds: 5,
       make(G) {
-        const t = pickNew(COLORS, G, x => x.n);
+        const pool = lvl('couleurs') === 0 ? COLORS.slice(0, 6) : COLORS;
+        const t = pickNew(pool, G, x => x.n);
         return {
           prompt: `Où est le ${t.n} ?`, success: `C'est le ${t.n} !`,
-          choices: shuffle([t, ...others(COLORS, t, 2)]).map(o => ({
+          choices: shuffle([t, ...others(pool, t, lvl('couleurs') === 2 ? 3 : 2)]).map(o => ({
             html: `<span class="splat" style="--paint:${o.hex}"></span>`, label: o.n, correct: o === t,
             wrong: `Ça, c'est le ${o.n}. Où est le ${t.n} ?`
           }))
@@ -311,7 +352,7 @@
         return {
           visual: bubble,
           prompt: `Qui fait ${t.cri} ?`, success: `${cap(t.n)} fait ${t.cri} !`,
-          choices: shuffle([t, ...others(ANIMALS, t, 2)]).map(o => ({
+          choices: shuffle([t, ...others(ANIMALS, t, nOthers('animaux'))]).map(o => ({
             html: `<span class="emo">${o.e}</span>`, label: o.n, correct: o === t,
             wrong: `Ça, c'est ${o.n}, ${o.n.startsWith('l\'') ? 'elle' : (o.n.startsWith('la') ? 'elle' : 'il')} fait ${o.cri} ! Qui fait ${t.cri} ?`
           }))
@@ -319,7 +360,35 @@
       }
     }
   };
-  const ORDER = ['potager', 'compter', 'couleurs', 'lettres', 'animaux', 'memory', 'puzzle', 'lire', 'prenom', 'formes', 'tailles', 'ombres', 'coloriage', 'musique', 'fil'];
+  // Difficulté réglable jeu par jeu (coin des parents). Pour Memory, Puzzles et Le bon chemin,
+  // le niveau monte aussi tout seul à chaque partie réussie.
+  const LEVEL_CFG = {
+    potager: { opts: ['2 images', '3 images', '4 images'], def: 1 },
+    couleurs: { opts: ['6 couleurs', '11 couleurs', '11 couleurs, 4 choix'], def: 1 },
+    animaux: { opts: ['2 choix', '3 choix', '4 choix'], def: 1 },
+    formes: { opts: ['Formes seules', 'Forme + couleur', 'Forme + couleur, 4 choix'], def: 1 },
+    gouter: { opts: ['2 choix', '3 choix', '4 choix'], def: 1 },
+    tailles: { opts: ['Grand et petit', 'Grand, moyen, petit'], def: 1 },
+    ombres: { opts: ['2 choix', '3 choix', '4 choix'], def: 1 },
+    lire: { opts: ['Mots courts', 'Tous les mots'], def: 1 },
+    prenom: { opts: ['Lettres seulement', 'Lettres + tracé facile', 'Lettres + tracé précis'], def: 1 },
+    memory: { opts: ['3 paires', '4 paires', '5 paires', '6 paires'], key: 'memoryWins' },
+    puzzle: { opts: ['2 morceaux', '4 morceaux', '6 morceaux', '9 morceaux'], key: 'puzzleWins' },
+    fil: { opts: ['Très facile', 'Facile', 'Moyen', 'Difficile', 'Très difficile'], key: 'mazeWins' }
+  };
+  function lvl(id) {
+    const c = LEVEL_CFG[id];
+    if (c.key) return Math.min(store.get(c.key, 0), c.opts.length - 1);
+    const v = (settings.levels || {})[id];
+    return v == null ? c.def : Math.min(v, c.opts.length - 1);
+  }
+  function setLvl(id, v) {
+    const c = LEVEL_CFG[id];
+    if (c.key) store.set(c.key, v); else { settings.levels = Object.assign({}, settings.levels, { [id]: v }); saveSettings(); }
+  }
+  const nOthers = id => [1, 2, 3][lvl(id)];
+
+  const ORDER = ['potager', 'compter', 'couleurs', 'lettres', 'animaux', 'memory', 'puzzle', 'lire', 'prenom', 'formes', 'tailles', 'ombres', 'coloriage', 'musique', 'fil', 'gouter'];
 
   function letterPool() {
     const base = settings.letters === 'all' ? LETTERS : LETTERS.filter(x => SIMPLE_LETTERS.includes(x.l));
@@ -675,7 +744,7 @@
     { w: 'PIRATE', e: '🏴‍☠️', s: ['PI', 'RA', 'TE'], say: ['pi', 'ra', 'teu'], word: 'pirate' }
   ];
   function readGame(G, f) {
-    const it = pickNew(WORDS, G, x => x.w);
+    const it = pickNew(lvl('lire') === 0 ? WORDS.filter(w => w.s.length === 2) : WORDS, G, x => x.w);
     const pic = el('button', 'rpic', it.e);
     pic.setAttribute('aria-label', 'Écouter le mot');
     pic.onclick = () => { audio(); say(it.word); };
@@ -849,7 +918,9 @@
             if (f !== G.flow) return;
             sfx.good();
             await say(`${praise()} ${base.map(letterSay).join(', ')} : ${name} ! ${own ? "C'est ton prénom !" : 'Bravo !'}`);
-            if (f === G.flow) tracePhase();
+            if (f !== G.flow) return;
+            if (lvl('prenom') === 0) { const dn = store.get('namesDone', []); if (!dn.includes(name.toLowerCase())) store.set('namesDone', dn.concat(name.toLowerCase())); chips.classList.add('whole'); G.n = G.total; nextQ(); }
+            else tracePhase();
           }
         } else {
           sfx.soft();
@@ -908,7 +979,8 @@
       const ox = (W - 100 * k) / 2, oy = (H - 140 * k) / 2;
       const P = ([a, b]) => [ox + a * k, oy + b * k];
       const strokes = GLYPHS[L].map(s => { const pts = resample(s, 3).map(P); return { pts, hit: pts.map(() => false) }; });
-      const tol = 17 * k, lw = 18 * k;
+      const precise = lvl('prenom') === 2;
+      const tol = (precise ? 11 : 17) * k, lw = 18 * k;
       const hue = (idx * 57 + 330) % 360;
       let ink = [], demo = null, finished = false;
 
@@ -948,7 +1020,7 @@
       }); }
       G.replay = () => { audio(); say(`La lettre ${letterSay(L)}. Regarde bien, et suis le chemin avec ton doigt !`); runDemo(); };
 
-      function covered() { return strokes.every(s => s.hit.filter(Boolean).length / s.hit.length >= 0.85 && (s.hit[0] || s.hit[1]) && (s.hit[s.hit.length - 1] || s.hit[s.hit.length - 2])); }
+      function covered() { return strokes.every(s => s.hit.filter(Boolean).length / s.hit.length >= (precise ? 0.95 : 0.85) && (s.hit[0] || s.hit[1]) && (s.hit[s.hit.length - 1] || s.hit[s.hit.length - 2])); }
       function mark(a, b) {
         strokes.forEach(s => s.pts.forEach((p, i) => { if (!s.hit[i] && distSeg(p[0], p[1], a[0], a[1], b[0], b[1]) < tol) s.hit[i] = true; }));
       }
@@ -995,11 +1067,16 @@
     { n: 'le carré', svg: '<rect x="10" y="10" width="80" height="80" rx="4"/>' },
     { n: 'le triangle', svg: '<polygon points="50,6 95,90 5,90"/>' },
     { n: 'le rectangle', svg: '<rect x="3" y="26" width="94" height="48" rx="4"/>' },
-    { n: "l'étoile", svg: `<polygon points="${starPts}"/>` },
+    { n: "l'étoile", g: 'f', svg: `<polygon points="${starPts}"/>` },
     { n: 'le cœur', svg: '<path d="M50 90 C 20 68, 3 50, 12 29 C 20 11, 44 10, 50 30 C 56 10, 80 11, 88 29 C 97 50, 80 68, 50 90 Z"/>' },
     { n: 'le losange', svg: '<polygon points="50,3 93,50 50,97 7,50"/>' }
   ];
   const SHAPE_COLORS = ['#E53935', '#1E63D6', '#FFC21F', '#2EAD4B', '#FF8A1F', '#8E44C9', '#FF6FAE'];
+  const SHAPE_COL = [
+    { hex: '#E53935', m: 'rouge', f: 'rouge' }, { hex: '#1E63D6', m: 'bleu', f: 'bleue' }, { hex: '#FFC21F', m: 'jaune', f: 'jaune' },
+    { hex: '#2EAD4B', m: 'vert', f: 'verte' }, { hex: '#FF8A1F', m: 'orange', f: 'orange' }, { hex: '#8E44C9', m: 'violet', f: 'violette' },
+    { hex: '#FF6FAE', m: 'rose', f: 'rose' }
+  ];
   const shapeSvg = (s, col) => `<svg class="shape" viewBox="0 0 100 100" aria-hidden="true"><g fill="${col}" stroke="rgb(36 50 79 / .35)" stroke-width="3" stroke-linejoin="round">${s.svg}</g></svg>`;
 
   // ---------- Les ombres ----------
@@ -1375,12 +1452,24 @@
     d.addEventListener('pointercancel', up);
   }
 
-  // ---------- Le fil : suivre chaque fil au doigt pour savoir qui gagne la course ----------
-  const RACERS = [
-    { e: '🐰', n: 'le lapin' }, { e: '🐻', n: "l'ours" }, { e: '🦊', n: 'le renard' }, { e: '🐱', n: 'le chat' },
-    { e: '🐼', n: 'le panda' }, { e: '🐸', n: 'la grenouille' }, { e: '🐷', n: 'le cochon' }, { e: '🐧', n: 'le pingouin' },
-    { e: '🐨', n: 'le koala' }, { e: '🦁', n: 'le lion' }, { e: '🐭', n: 'la souris' }, { e: '🐶', n: 'le chien' }
+  // ---------- Le goûter des animaux (animaux + fruits et légumes) ----------
+  const MEALS = [
+    { a: '🐰', n: 'le lapin', f: '🥕', fn: 'la carotte', like: 'les carottes' },
+    { a: '🐵', n: 'le singe', f: '🍌', fn: 'la banane', like: 'les bananes' },
+    { a: '🐻', n: "l'ours", f: '🍯', fn: 'le miel', like: 'le miel' },
+    { a: '🐿️', n: "l'écureuil", f: '🌰', fn: 'la noisette', like: 'les noisettes' },
+    { a: '🐭', n: 'la souris', f: '🧀', fn: 'le fromage', like: 'le fromage' },
+    { a: '🐼', n: 'le panda', f: '🎋', fn: 'le bambou', like: 'le bambou' },
+    { a: '🐔', n: 'la poule', f: '🌽', fn: 'le maïs', like: 'le maïs' },
+    { a: '🐱', n: 'le chat', f: '🐟', fn: 'le poisson', like: 'le poisson' },
+    { a: '🐶', n: 'le chien', f: '🦴', fn: "l'os", like: 'les os' },
+    { a: '🐛', n: 'la chenille', f: '🥬', fn: 'la salade', like: 'la salade' },
+    { a: '🐷', n: 'le cochon', f: '🍎', fn: 'la pomme', like: 'les pommes' },
+    { a: '🐮', n: 'la vache', f: '🌿', fn: "l'herbe", like: "l'herbe" }
   ];
+  const pron = n => /^la /.test(n) || ['la souris', 'la poule', 'la chenille', 'la vache'].includes(n) ? 'elle' : 'il';
+
+  // ---------- Le bon chemin : un animal, trois chemins, un seul mène à son goûter ----------
   const DECOYS = [
     { e: '🌲', n: 'au sapin' }, { e: '⛄', n: 'au bonhomme de neige' }, { e: '🍄', n: 'au champignon' },
     { e: '🪨', n: 'au caillou' }, { e: '🌻', n: 'au tournesol' }, { e: '🏠', n: 'à la maison' }
@@ -1404,12 +1493,10 @@
       }
     }
     out.push(pts[pts.length - 1]);
-    // ré-échantillonnage régulier
     const res = [out[0]];
     let acc = 0;
     for (let i = 1; i < out.length; i++) {
-      const d = Math.hypot(out[i][0] - out[i - 1][0], out[i][1] - out[i - 1][1]);
-      acc += d;
+      acc += Math.hypot(out[i][0] - out[i - 1][0], out[i][1] - out[i - 1][1]);
       if (acc >= step) { res.push(out[i]); acc = 0; }
     }
     res.push(out[out.length - 1]);
@@ -1428,146 +1515,116 @@
     const x = cv.getContext('2d');
     x.scale(dpr, dpr);
 
-    const racers = shuffle(RACERS).slice(0, 3);
-    const decoys = shuffle(DECOYS).slice(0, 2);
-    const ends = shuffle([{ e: '🏁', n: "à l'arrivée", win: true }, ...decoys]);
-    const order = shuffle([0, 1, 2]);           // fil i -> arrivée order[i]
-    if (order.every((v, i) => v === i)) order.push(order.shift()); // jamais tout droit
-    const xs = [W * 0.18, W * 0.5, W * 0.82];
-    const topY = Math.min(70, H * 0.11), botY = H - Math.min(64, H * 0.1);
-    const y0 = topY + 34, y1 = botY - 34;
-    const paths = racers.map((r, i) => {
-      const way = [[xs[i], y0]];
+    const meal = pickNew(MEALS, G, m => m.n);
+    const ends = shuffle([{ e: meal.f, n: '', win: true }, ...shuffle(DECOYS).slice(0, 2)]);
+    ends.forEach(E => { if (E.win) E.n = /^le /.test(meal.fn) ? 'au ' + meal.fn.slice(3) : 'à ' + meal.fn; });
+    const order = shuffle([0, 1, 2]);
+    if (order.every((v, i) => v === i)) order.push(order.shift());
+    const topY = Math.min(58, H * 0.09), botY = H - Math.min(64, H * 0.1);
+    const sx = [W * 0.32, W * 0.5, W * 0.68], ex = [W * 0.18, W * 0.5, W * 0.82];
+    const y0 = topY + 52, y1 = botY - 36;
+    const paths = [0, 1, 2].map(i => {
+      const way = [[sx[i], y0]];
       for (let k = 1; k <= lvl.mids; k++) {
         const yy = y0 + (y1 - y0) * (k / (lvl.mids + 1)) + (Math.random() - 0.5) * (y1 - y0) / (lvl.mids + 1) * 0.6;
         way.push([W * (0.1 + Math.random() * 0.8), yy]);
       }
-      way.push([xs[order[i]], y1]);
-      const pts = catmull(way, 4);
-      return { r, end: ends[order[i]], pts, color: lvl.colors ? FIL_COLORS[i] : FIL_SAME, p: 0, done: false };
+      way.push([ex[order[i]], y1]);
+      return { end: ends[order[i]], pts: catmull(way, 4), color: lvl.colors ? FIL_COLORS[i] : FIL_SAME, p: 0, done: false };
     });
     const lw = Math.max(9, Math.min(14, W / 32));
     const tol = Math.max(26, lw * 2.4);
-    let cur = 0, sprite = null, finished = false;
+    let act = null, sprite = null, finished = false, misses = 0;
     const fontE = s => `${s}px "Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif`;
+    const poly = pts => { x.beginPath(); x.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) x.lineTo(pts[i][0], pts[i][1]); };
 
     function draw() {
       x.clearRect(0, 0, W, H);
       x.lineCap = 'round'; x.lineJoin = 'round';
-      // les fils
-      paths.forEach((P, i) => {
-        if (i === cur && !finished) return;
-        x.strokeStyle = P.done ? P.color : P.color; x.globalAlpha = P.done ? 0.35 : 1;
-        x.lineWidth = lw; poly(P.pts); x.stroke();
-      });
+      paths.forEach(P => { x.globalAlpha = P.done ? 0.2 : 1; x.strokeStyle = P.color; x.lineWidth = lw; poly(P.pts); x.stroke(); });
       x.globalAlpha = 1;
-      if (!finished) {
-        const P = paths[cur];
-        x.strokeStyle = 'rgba(255,200,61,.45)'; x.lineWidth = lw * 2.2; poly(P.pts); x.stroke();
-        x.strokeStyle = P.color; x.lineWidth = lw; poly(P.pts); x.stroke();
-        if (P.p > 0) { x.strokeStyle = '#FFFFFF'; x.lineWidth = lw * 0.45; poly(P.pts.slice(0, P.p + 1)); x.stroke(); }
+      paths.forEach(P => {
+        if (P.done || P.p === 0) return;
+        x.strokeStyle = '#FFFFFF'; x.lineWidth = lw * 0.45; poly(P.pts.slice(0, P.p + 1)); x.stroke();
+      });
+      if (!finished) paths.forEach(P => {
+        if (P.done) return;
         const h = P.pts[P.p];
         x.fillStyle = P.p === 0 ? '#3F9A43' : '#EF4F6C'; x.strokeStyle = '#fff'; x.lineWidth = 4;
-        x.beginPath(); x.arc(h[0], h[1], lw * 1.25, 0, Math.PI * 2); x.fill(); x.stroke();
-      }
-      // départs et arrivées
+        x.beginPath(); x.arc(h[0], h[1], lw * 1.2, 0, Math.PI * 2); x.fill(); x.stroke();
+      });
       x.textAlign = 'center'; x.textBaseline = 'middle';
-      paths.forEach((P, i) => {
-        const big = i === cur && !finished;
-        x.font = fontE(big ? 50 : 40);
-        x.globalAlpha = P.done && sprite?.i !== i ? 0.35 : 1;
-        if (!(sprite && sprite.i === i)) x.fillText(P.r.e, xs[i], topY - 4);
-        x.globalAlpha = 1;
-      });
+      if (!sprite) { x.font = fontE(54); x.fillText(meal.a, W / 2, topY); }
       ends.forEach((E, k) => {
-        x.font = fontE(46);
-        x.fillText(E.e, xs[k], botY + 6);
+        const P = paths.find(q => q.end === E);
+        x.globalAlpha = P && P.done && !E.win ? 0.35 : 1;
+        x.font = fontE(48); x.fillText(E.e, ex[k], botY + 6);
       });
-      paths.forEach(P => { if (P.done && !(sprite && sprite.P === P)) { x.font = fontE(30); const [ex, ey] = P.pts[P.pts.length - 1]; x.fillText(P.r.e, ex + 30, ey + 36 > H ? ey : ey + 30); } });
-      if (sprite) { x.font = fontE(48); x.fillText(sprite.P.r.e, sprite.pos[0], sprite.pos[1]); }
+      x.globalAlpha = 1;
+      if (sprite) { x.font = fontE(50); x.fillText(meal.a, sprite.pos[0], sprite.pos[1] - 10); }
     }
-    function poly(pts) { x.beginPath(); x.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) x.lineTo(pts[i][0], pts[i][1]); }
-
-    function ride(i) {
+    function ride(P, back) {
       return new Promise(res => {
-        const P = paths[i]; const t0 = performance.now(); const dur = 1600;
-        sprite = { i, P, pos: P.pts[0] };
+        const t0 = performance.now(), dur = 1500;
+        sprite = { pos: P.pts[0] };
         const step = t => {
           const k = Math.max(0, Math.min(1, (t - t0) / dur));
           sprite.pos = P.pts[Math.floor(k * (P.pts.length - 1))];
           draw();
-          if (k < 1 && f === G.flow) requestAnimationFrame(step); else { sprite = null; draw(); res(); }
+          if (k < 1 && f === G.flow) requestAnimationFrame(step);
+          else { if (back) sprite = null; draw(); res(); }
         };
         requestAnimationFrame(step);
       });
     }
-    function demo() { // un petit point montre le chemin depuis là où on en est
-      const P = paths[cur]; let k = P.p;
-      const tick = () => {
-        if (f !== G.flow || finished || P !== paths[cur]) return;
-        draw();
-        const [hx, hy] = P.pts[k];
-        x.fillStyle = '#FFC83D'; x.strokeStyle = '#D99A00'; x.lineWidth = 3;
-        x.beginPath(); x.arc(hx, hy, lw * 1.1, 0, Math.PI * 2); x.fill(); x.stroke();
-        k += 3;
-        if (k < P.pts.length) requestAnimationFrame(tick); else draw();
-      };
-      tick();
-    }
-    G.replay = () => { audio(); say(`Suis le fil ${deN(paths[cur].r.n)} avec ton doigt !`); demo(); };
+    if (location.hash === '#test') window.__maze = { paths, rect: () => cv.getBoundingClientRect() };
 
-    let down = false, misses = 0;
     const pos = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
     function advance(q) {
-      const P = paths[cur];
+      const P = act; if (!P) return;
       let best = -1;
       const lim = Math.min(P.pts.length - 1, P.p + 22);
       for (let i = P.p; i <= lim; i++) if (Math.hypot(P.pts[i][0] - q[0], P.pts[i][1] - q[1]) < tol) best = i;
       if (best > P.p) {
         if (Math.floor(best / 12) > Math.floor(P.p / 12)) note(480 + best * 2.5, 0, 0.05, 'sine', 0.05);
         P.p = best; draw();
-        if (P.p >= P.pts.length - 4) arrive();
+        if (P.p >= P.pts.length - 4) arrive(P);
       }
     }
     cv.addEventListener('pointerdown', e => {
       if (finished || f !== G.flow || sprite) return;
       e.preventDefault(); audio();
       try { cv.setPointerCapture(e.pointerId); } catch (err) { /* rien */ }
-      const q = pos(e), P = paths[cur];
-      const h = P.pts[P.p];
-      if (Math.hypot(h[0] - q[0], h[1] - q[1]) < tol * 1.6) { down = true; misses = 0; advance(q); }
-      else if (++misses >= 2) { misses = 0; say(P.p === 0 ? `Pose ton doigt sur le point vert, sous ${P.r.n} !` : 'Continue depuis le point rouge !'); demo(); }
+      const q = pos(e);
+      let best = null, bd = tol * 1.6;
+      paths.forEach(P => { if (P.done) return; const h = P.pts[P.p]; const d = Math.hypot(h[0] - q[0], h[1] - q[1]); if (d < bd) { bd = d; best = P; } });
+      if (best) { act = best; misses = 0; advance(q); }
+      else if (++misses >= 2) { misses = 0; say('Pose ton doigt sur un point vert, et suis le chemin !'); }
     });
-    cv.addEventListener('pointermove', e => { if (down) advance(pos(e)); });
-    const up = () => { down = false; };
+    cv.addEventListener('pointermove', e => { if (act) advance(pos(e)); });
+    const up = () => { act = null; };
     cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
 
-    async function arrive() {
-      down = false;
-      const P = paths[cur];
-      P.p = P.pts.length - 1; P.done = true;
-      sfx.good();
-      await ride(cur);
+    async function arrive(P) {
+      act = null;
+      P.p = P.pts.length - 1;
+      await ride(P, !P.end.win);
       if (f !== G.flow) return;
-      await say(P.end.win ? `${cap(P.r.n)} arrive ${P.end.n} ! ${P.r.n.startsWith('la ') ? 'Elle' : 'Il'} gagne la course !` : `${cap(P.r.n)} arrive ${P.end.n} !`);
-      if (f !== G.flow) return;
-      const next = paths.findIndex(q => !q.done);
-      if (next >= 0) {
-        cur = next; draw();
-        say(`Maintenant, suis le fil ${deN(paths[cur].r.n)} !`);
-        return;
+      if (P.end.win) {
+        finished = true; draw();
+        sfx.good(); confetti();
+        await say(`Miam ! ${cap(meal.n)} a trouvé ${meal.fn} ! Bravo !`);
+        if (f === G.flow) { G.n = G.total; nextQ(); }
+      } else {
+        P.done = true; P.p = 0; draw();
+        sfx.soft();
+        say(`Oh ! Ce chemin va ${P.end.n}. Essaie un autre chemin !`);
       }
-      finished = true; draw();
-      const w = paths.find(q => q.end.win);
-      confetti();
-      await say(`C'est ${w.r.n} qui gagne la course !`);
-      if (f === G.flow) { G.n = G.total; nextQ(); }
     }
 
-    if (location.hash === '#test') window.__maze = { paths, cur: () => cur, rect: () => cv.getBoundingClientRect() };
     draw();
-    $('#caption').textContent = 'Suis le fil avec ton doigt';
-    G.prompt = `Qui va gagner la course ? Avec ton doigt, suis le fil ${deN(paths[0].r.n)}, en partant du point vert !`;
+    $('#caption').textContent = 'Trouve le bon chemin';
+    G.prompt = `${cap(meal.n)} a faim ! Aide-${pron(meal.n) === 'elle' ? 'la' : 'le'} à trouver ${meal.fn}. Choisis un chemin, et suis-le avec ton doigt !`;
     say(G.prompt);
   }
 
@@ -1664,7 +1721,7 @@
     $('#caption').textContent = q.caption || q.prompt;
     const ch = $('#choices');
     ch.innerHTML = '';
-    ch.className = 'choices' + (row ? ' row' : '') + (q.cls ? ' ' + q.cls : '');
+    ch.className = 'choices' + (row ? ' row' : '') + (q.cls ? ' ' + q.cls : '') + (!row && q.choices.length === 4 ? ' four' : '');
     q.choices.forEach((c, i) => {
       const b = el('button', 'choice', c.html);
       b.setAttribute('aria-label', c.label);
@@ -1682,6 +1739,7 @@
       G.lock = true;
       sfx.good();
       b.classList.add('yes');
+      if (q.onCorrect) q.onCorrect(c);
       $$('.choice', $('#choices')).forEach(x => { if (x !== b) x.classList.add('dim'); });
       const dot = $$('.dot')[G.n];
       if (dot) { dot.classList.add('on'); dot.textContent = '⭐'; }
@@ -1850,8 +1908,7 @@
     const ml2 = store.get('memLock', 0);
     if ($('#mem-info')) $('#mem-info').textContent = ml2 > 0 ? `Memory en pause : encore ${ml2} autre(s) jeu(x)` : `Parties de memory d'affilée : ${store.get('memPlays', 0)}`;
     $('#album-info').textContent = `Album : ${loadStickers().length} autocollants`;
-    const [pc, pr] = puzzleGrid();
-    $('#levels-info').textContent = `Memory : ${memoryPairs()} paires · Puzzles : ${pc * pr} morceaux`;
+    renderLevels();
     freshUsage();
     const min = Math.floor(usage.sec / 60);
     $('#usage-info').textContent = `Joué aujourd'hui : ${min} min` + (usage.extra ? ` (bonus +${usage.extra} min)` : '');
@@ -1892,7 +1949,23 @@
   $('#set-limit').onchange = e => { settings.timeLimit = +e.target.value; saveSettings(); refreshParentInfo(); };
   $('#btn-test-voice').onclick = () => { audio(); sfx.good(); say(settings.name ? `Bonjour ${settings.name} ! Où est la carotte ?` : 'Bonjour ! Où est la carotte ?'); };
   $('#btn-count-reset').onclick = () => { store.set('countLevel', 5); refreshParentInfo(); };
-  $('#btn-levels-reset').onclick = () => { store.set('memoryWins', 0); store.set('puzzleWins', 0); refreshParentInfo(); };
+  function renderLevels() {
+    const box = $('#set-levels'); if (!box) return;
+    box.innerHTML = '';
+    ORDER.filter(id => LEVEL_CFG[id]).forEach(id => {
+      const c = LEVEL_CFG[id];
+      const row = el('label', 'row lvl-row');
+      row.setAttribute('for', 'lvl-' + id);
+      row.append(el('span', '', `${GAMES[id].icon} ${GAMES[id].name}${c.key ? ' <small>(monte seul)</small>' : ''}`));
+      const sel = el('select');
+      sel.id = 'lvl-' + id;
+      c.opts.forEach((o, i) => { const op = el('option', '', `${i + 1}. ${o}`); op.value = i; sel.append(op); });
+      sel.value = lvl(id);
+      sel.onchange = () => setLvl(id, +sel.value);
+      row.append(sel);
+      box.append(row);
+    });
+  }
   $('#btn-extra').onclick = () => { freshUsage(); usage.extra += 10; store.set('usage', usage); refreshParentInfo(); };
   $('#btn-parent-close').onclick = () => { saveSettings(); goHome(false); };
 

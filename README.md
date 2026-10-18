@@ -16,12 +16,13 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | 🧩 Puzzles | Choisir une image (château, licorne, tracteur…) et faire glisser les morceaux : 2 morceaux au début, puis 4, 6 et 9 à chaque puzzle réussi. Bouton « Suivant » : image suivante, un peu plus difficile |
 | 📖 Lire | Toucher les syllabes une par une (LA · PIN), la voix les lit, puis lit le mot entier. Syllabes en bleu et rouge, comme à l'école |
 | ✏️ Mon prénom | Remettre les lettres du prénom dans l'ordre, puis tracer chaque lettre au doigt en partant du point vert (la voix montre d'abord le chemin). Le prénom se règle dans le coin des parents. On peut y ajouter d'autres prénoms (famille, copains) : ils deviennent des niveaux, du plus court au plus long, avec une étoile une fois réussis et un bouton « Suivant » |
-| 🔷 Formes | « Où est le triangle ? » : rond, carré, triangle, rectangle, étoile, cœur, losange |
+| 🔷 Formes et couleurs | « Où est le triangle rouge ? » : rond, carré, triangle, rectangle, étoile, cœur, losange × 7 couleurs (niveau 1 : formes seules) |
 | 🐘 Grand, moyen, petit | Toucher le plus grand, le plus petit, puis le moyen (à tour de rôle) |
 | 🦒 Les ombres | Retrouver l'ombre de l'animal ou de l'objet montré |
 | 🖍️ Coloriage | 5 dessins (maison, fleur, poisson, papillon, voiture) : choisir une couleur, toucher une zone. Bouton vert pour finir, « Suivant » pour le dessin d'après |
 | 🎵 Musique | Xylophone libre, ou 3 chansons guidées (la barre à toucher brille) : Au clair de la lune, Frère Jacques, Ah vous dirai-je maman |
-| 🏁 Le fil | Trois animaux, trois fils emmêlés : suivre chaque fil au doigt depuis le point vert pour savoir qui arrive au drapeau. Fils de couleurs différentes au début, puis de la même couleur et plus emmêlés. Le bouton haut-parleur montre le chemin |
+| 🛤️ Le bon chemin | Un animal a faim, trois chemins emmêlés : un seul mène à son goûter. On suit un chemin au doigt depuis un point vert ; s'il mène ailleurs, on essaie un autre. Chemins de couleurs différentes au début, puis de la même couleur et plus emmêlés |
+| 🐰 Le goûter | « Le lapin a faim ! Qu'est-ce qu'il mange ? » : retrouver le repas de 12 animaux (carotte, banane, miel, noisette, fromage…) |
 
 **Accueil** : 9 jeux tirés au hasard à chaque ouverture de l'appli, en priorité ceux qui n'étaient pas affichés la fois précédente (réglable : « Tous les jeux »). Les jeux marqués ⭐ dans le coin des parents sont toujours affichés (Memory par défaut).
 
@@ -33,7 +34,7 @@ En cas d'erreur, l'image se grise et la voix dit ce que c'était (« Ça, c'est 
 ## Coin des parents
 
 Appui long (2 secondes) sur la petite roue en haut à droite de l'écran des jeux.
-Réglages : volume, vitesse de la voix, bruitages, prénom, autres prénoms à écrire, jeux affichés, « compter jusqu'à », lettres simples ou tout l'alphabet, retour au niveau facile pour Memory et Puzzles, jeux favoris ⭐, vider l'album, limite de temps d'écran par jour (avec « +10 min aujourd'hui »).
+Réglages : **difficulté jeu par jeu** (nombre d'images, formes seules ou avec couleurs, tracé facile ou précis, nombre de paires, de morceaux…), volume, vitesse de la voix, bruitages, prénom, autres prénoms à écrire, jeux affichés, « compter jusqu'à », lettres simples ou tout l'alphabet, jeux favoris ⭐, vider l'album, limite de temps d'écran par jour (avec « +10 min aujourd'hui »).
 Tout est enregistré sur le téléphone uniquement.
 
 ## Mettre en ligne (GitHub Pages)
@@ -53,7 +54,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v9` → `v10`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v10` → `v11`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique
