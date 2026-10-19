@@ -20,7 +20,7 @@
   const DEFAULTS = {
     volume: 1, rate: 0.9, effects: true, name: '', names: [],
     countMax: 30, letters: 'simple', timeLimit: 0, memLimit: 5, levels: {}, memPeek: 0, memDelay: 'normal', memGroup: 2,
-    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true, fil: true, gouter: true },
+    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true, fil: true, gouter: true, chiffres: true },
     homeMode: 'rotate', favs: ['memory']
   };
   const saved = store.get('settings', {});
@@ -272,6 +272,10 @@
       name: 'Musique', intro: 'La musique !', icon: '🎵', color: '#16A3A3', rounds: 1, full: true,
       make(G) { return { custom: musicGame }; }
     },
+    chiffres: {
+      name: 'Les chiffres', intro: 'On écrit les chiffres !', icon: '🔢', color: '#7A5BD6', rounds: 1, full: true,
+      make(G) { return { custom: digitGame }; }
+    },
     gouter: {
       name: 'Le goûter', intro: 'Le goûter des animaux !', icon: '🐰', color: '#F08A3C', rounds: 5,
       make(G) {
@@ -348,13 +352,17 @@
         const t = pickNew(ANIMALS, G, x => x.n);
         const bubble = el('button', 'bubble', `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path class="stroke" d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>${cap(t.cri)} !`);
         bubble.setAttribute('aria-label', 'Écouter encore');
-        bubble.onclick = repeat;
+        const listen = () => { bubble.classList.remove('ring'); void bubble.offsetWidth; bubble.classList.add('ring'); return playCry(t); };
+        bubble.onclick = () => { audio(); listen(); };
+        G.replay = async () => { audio(); await say('Écoute bien !'); listen(); };
         return {
           visual: bubble,
-          prompt: `Qui fait ${t.cri} ?`, success: `${cap(t.n)} fait ${t.cri} !`,
+          prompt: 'Écoute bien ! Qui fait ce bruit ?', caption: 'Qui fait ce bruit ?', success: `${cap(t.n)} fait ${t.cri} !`,
+          after: listen, afterWrong: listen,
+          onCorrect: () => listen(),
           choices: shuffle([t, ...others(ANIMALS, t, nOthers('animaux'))]).map(o => ({
             html: `<span class="emo">${o.e}</span>`, label: o.n, correct: o === t,
-            wrong: `Ça, c'est ${o.n}, ${o.n.startsWith('l\'') ? 'elle' : (o.n.startsWith('la') ? 'elle' : 'il')} fait ${o.cri} ! Qui fait ${t.cri} ?`
+            wrong: `Ça, c'est ${o.n}. Écoute encore !`
           }))
         };
       }
@@ -371,6 +379,7 @@
     tailles: { opts: ['Grand et petit', 'Grand, moyen, petit'], def: 1 },
     ombres: { opts: ['2 choix', '3 choix', '4 choix'], def: 1 },
     lire: { opts: ['Mots courts', 'Tous les mots'], def: 1 },
+    chiffres: { opts: ['1 à 5', '1 à 10', '1 à 10, tracé précis'], def: 0 },
     prenom: { opts: ['Lettres seulement', 'Lettres + tracé facile', 'Lettres + tracé précis'], def: 1 },
     memory: { opts: ['3 paires', '4 paires', '5 paires', '6 paires', '8 paires', '10 paires'], key: 'memLevel' },
     puzzle: { opts: ['2 morceaux', '4 morceaux', '6 morceaux', '9 morceaux'], key: 'puzzleWins' },
@@ -388,7 +397,7 @@
   }
   const nOthers = id => [1, 2, 3][lvl(id)];
 
-  const ORDER = ['potager', 'compter', 'couleurs', 'lettres', 'animaux', 'memory', 'puzzle', 'lire', 'prenom', 'formes', 'tailles', 'ombres', 'coloriage', 'musique', 'fil', 'gouter'];
+  const ORDER = ['potager', 'compter', 'couleurs', 'lettres', 'animaux', 'memory', 'puzzle', 'lire', 'prenom', 'formes', 'tailles', 'ombres', 'coloriage', 'musique', 'fil', 'gouter', 'chiffres'];
 
   function letterPool() {
     const base = settings.letters === 'all' ? LETTERS : LETTERS.filter(x => SIMPLE_LETTERS.includes(x.l));
@@ -977,7 +986,7 @@
     }
   }
 
-  function traceLetter(wrap, L, idx, f) {
+  function traceLetter(wrap, L, idx, f, opt = {}) {
     return new Promise(resolve => {
       wrap.innerHTML = '';
       const cv = el('canvas');
@@ -991,8 +1000,9 @@
       const k = Math.min(W / (100 + pad * 2), H / (140 + pad * 2));
       const ox = (W - 100 * k) / 2, oy = (H - 140 * k) / 2;
       const P = ([a, b]) => [ox + a * k, oy + b * k];
-      const strokes = GLYPHS[L].map(s => { const pts = resample(s, 3).map(P); return { pts, hit: pts.map(() => false) }; });
-      const precise = lvl('prenom') === 2;
+      const strokes = (opt.strokes || GLYPHS[L]).map(s => { const pts = resample(s, 3).map(P); return { pts, hit: pts.map(() => false) }; });
+      const precise = opt.precise != null ? opt.precise : lvl('prenom') === 2;
+      const label = opt.label || `La lettre ${letterSay(L)}`;
       const tol = (precise ? 11 : 17) * k, lw = 18 * k;
       const hue = (idx * 57 + 330) % 360;
       let ink = [], demo = null, finished = false;
@@ -1031,7 +1041,7 @@
         };
         requestAnimationFrame(step);
       }); }
-      G.replay = () => { audio(); say(`La lettre ${letterSay(L)}. Regarde bien, et suis le chemin avec ton doigt !`); runDemo(); };
+      G.replay = () => { audio(); say(`${label}. Regarde bien, et suis le chemin avec ton doigt !`); runDemo(); };
 
       function covered() { return strokes.every(s => s.hit.filter(Boolean).length / s.hit.length >= (precise ? 0.95 : 0.85) && (s.hit[0] || s.hit[1]) && (s.hit[s.hit.length - 1] || s.hit[s.hit.length - 2])); }
       function mark(a, b) {
@@ -1062,13 +1072,13 @@
 
       draw();
       (async () => {
-        await say(idx === 0 ? `Maintenant, on trace les lettres ! La lettre ${letterSay(L)}. Regarde !` : `La lettre ${letterSay(L)}. Regarde !`);
+        await say(opt.first != null ? `${opt.first} ${label}. Regarde !` : idx === 0 ? `Maintenant, on trace les lettres ! ${label}. Regarde !` : `${label}. Regarde !`);
         if (f !== G.flow || finished) return;
         await runDemo();
         if (f !== G.flow || finished) return;
         say(idx === 0 ? 'À toi ! Pars du point vert et suis le chemin avec ton doigt.' : 'À toi !');
       })();
-      G.prompt = `La lettre ${letterSay(L)}`;
+      G.prompt = label;
       $('#caption').textContent = 'Suis le chemin avec ton doigt';
     });
   }
@@ -1686,6 +1696,168 @@
     (async () => { await say(G.prompt); if (f === G.flow) showHand(); })();
   }
 
+  // ---------- Cris d'animaux : fabriqués par l'appli, ou enregistrés par les parents ----------
+  function tone(o) {
+    const a = audio(); if (!a) return;
+    const t0 = a.currentTime + (o.at || 0);
+    const vol = (o.vol || 0.4) * settings.volume;
+    const out = a.createGain();
+    const env = o.g || [[0, 0], [0.05, 1], [0.5, 0]];
+    out.gain.setValueAtTime(0.0001, t0);
+    env.forEach(([t, v]) => out.gain.linearRampToValueAtTime(Math.max(0.0001, v * vol), t0 + t));
+    let src;
+    if (o.type === 'noise') {
+      const len = a.sampleRate * (env[env.length - 1][0] + 0.05);
+      const buf = a.createBuffer(1, len, a.sampleRate); const d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      src = a.createBufferSource(); src.buffer = buf;
+    } else {
+      src = a.createOscillator(); src.type = o.type || 'sawtooth';
+      const fp = o.f || [[0, 220]];
+      src.frequency.setValueAtTime(fp[0][1], t0);
+      fp.slice(1).forEach(([t, v]) => src.frequency.linearRampToValueAtTime(v, t0 + t));
+      if (o.vib) { const l = a.createOscillator(), lg = a.createGain(); l.frequency.value = o.vib[0]; lg.gain.value = o.vib[1]; l.connect(lg); lg.connect(src.frequency); l.start(t0); l.stop(t0 + env[env.length - 1][0] + 0.1); }
+    }
+    let node = src;
+    if (o.am) {
+      const amg = a.createGain(); amg.gain.value = 1 - o.am[1] / 2;
+      const l = a.createOscillator(), lg = a.createGain(); l.frequency.value = o.am[0]; lg.gain.value = o.am[1] / 2;
+      l.connect(lg); lg.connect(amg.gain); l.start(t0); l.stop(t0 + env[env.length - 1][0] + 0.1);
+      node.connect(amg); node = amg;
+    }
+    if (o.filt) {
+      const fl = a.createBiquadFilter(); fl.type = o.filt[0]; fl.Q.value = o.filt[2] || 1;
+      const ff = o.filt[1];
+      fl.frequency.setValueAtTime(ff[0][1], t0);
+      ff.slice(1).forEach(([t, v]) => fl.frequency.linearRampToValueAtTime(v, t0 + t));
+      node.connect(fl); node = fl;
+    }
+    node.connect(out); out.connect(a.destination);
+    src.start(t0); src.stop(t0 + env[env.length - 1][0] + 0.1);
+  }
+  const CRIES = {
+    'la vache': () => { tone({ f: [[0, 118], [0.25, 124], [1.1, 96]], g: [[0, 0], [0.2, 1], [0.95, 0.8], [1.3, 0]], filt: ['lowpass', [[0, 350], [0.35, 950], [1.2, 420]], 6], vol: 0.6 }); return 1400; },
+    'le chat': () => { tone({ f: [[0, 520], [0.18, 780], [0.55, 610], [0.78, 430]], g: [[0, 0], [0.06, 1], [0.6, 0.8], [0.82, 0]], filt: ['bandpass', [[0, 700], [0.22, 1900], [0.8, 850]], 3], vol: 0.6 }); return 900; },
+    'le chien': () => { [0, 0.3].forEach(at => { tone({ at, f: [[0, 430], [0.13, 260]], g: [[0, 0], [0.01, 1], [0.15, 0]], filt: ['bandpass', [[0, 900]], 1.5], vol: 0.7 }); tone({ at, type: 'noise', g: [[0, 0], [0.01, 1], [0.12, 0]], filt: ['bandpass', [[0, 1300]], 1.2], vol: 0.35 }); }); return 600; },
+    'le mouton': () => { tone({ f: [[0, 300], [0.9, 275]], vib: [8, 24], g: [[0, 0], [0.08, 1], [0.8, 0.7], [1.05, 0]], filt: ['bandpass', [[0, 1100]], 2], vol: 0.6 }); return 1150; },
+    'le cochon': () => { [0, 0.32].forEach(at => tone({ at, type: 'square', f: [[0, 165], [0.22, 110]], am: [32, 0.9], g: [[0, 0], [0.02, 1], [0.24, 0]], filt: ['lowpass', [[0, 700]], 4], vol: 0.5 })); return 650; },
+    'la poule': () => { [0, 0.17, 0.34].forEach(at => tone({ at, type: 'triangle', f: [[0, 720], [0.08, 540]], g: [[0, 0], [0.01, 1], [0.09, 0]], filt: ['bandpass', [[0, 1200]], 2], vol: 0.6 })); tone({ at: 0.58, type: 'sawtooth', f: [[0, 900], [0.28, 600]], g: [[0, 0], [0.02, 1], [0.3, 0]], filt: ['bandpass', [[0, 1300]], 3], vol: 0.45 }); return 950; },
+    'le canard': () => { [0, 0.26].forEach(at => tone({ at, f: [[0, 250], [0.18, 200]], g: [[0, 0], [0.02, 1], [0.19, 0]], filt: ['bandpass', [[0, 1300]], 7], vol: 0.8 })); return 500; },
+    'la grenouille': () => { [0, 0.42].forEach(at => tone({ at, type: 'square', f: [[0, 96], [0.3, 84]], am: [45, 1], g: [[0, 0], [0.03, 1], [0.32, 0]], filt: ['lowpass', [[0, 650]], 5], vol: 0.55 })); return 800; },
+    'la souris': () => { [0, 0.16, 0.32].forEach(at => tone({ at, type: 'sine', f: [[0, 2600], [0.09, 3300]], g: [[0, 0], [0.01, 1], [0.1, 0]], vol: 0.25 })); return 450; },
+    'le hibou': () => { [0, 0.6].forEach(at => tone({ at, type: 'sine', f: [[0, 430], [0.45, 380]], vib: [5, 6], g: [[0, 0], [0.09, 1], [0.35, 0.6], [0.5, 0]], vol: 0.5 })); return 1150; },
+    'le coq': () => { [[0, 520, 0.14], [0.16, 700, 0.14], [0.32, 880, 0.14], [0.5, 760, 0.65]].forEach(([at, fq, d]) => tone({ at, f: [[0, fq], [d, fq * 0.96]], vib: [9, 8], g: [[0, 0], [0.02, 1], [d - 0.03, 0.8], [d, 0]], filt: ['bandpass', [[0, 1500]], 2], vol: 0.5 })); return 1200; },
+    'le loup': () => { tone({ type: 'triangle', f: [[0, 330], [0.5, 640], [1.6, 570], [2.2, 430]], vib: [6, 10], g: [[0, 0], [0.3, 1], [1.8, 0.8], [2.3, 0]], filt: ['lowpass', [[0, 1500]], 1], vol: 0.6 }); return 2300; }
+  };
+  const criKey = n => 'cri.' + n;
+  function playCry(an) {
+    return new Promise(res => {
+      hush();
+      const rec = store.get(criKey(an.n), null);
+      if (rec) {
+        try {
+          const au = new Audio(rec); au.volume = settings.volume;
+          au.onended = res; au.onerror = res; au.play().catch(res);
+          setTimeout(res, 4000);
+          return;
+        } catch (e) { /* on retombe sur le cri fabriqué */ }
+      }
+      const fn = CRIES[an.n];
+      if (!fn || !audio()) { res(); return; }
+      setTimeout(res, fn() + 150);
+    });
+  }
+
+  // ---------- Les chiffres : tracer 1 à 10 au doigt ----------
+  const DIGITS = (() => {
+    const O = [arc(50, 70, 42, 68, -90, -450, 44)];
+    return {
+      0: O,
+      1: [[[22, 34], [58, 0], [58, 140]]],
+      2: [[...arc(50, 40, 40, 40, -165, 25, 22), [10, 140], [92, 140]]],
+      3: [[...arc(48, 36, 38, 36, -160, 90, 22), ...arc(48, 104, 42, 36, -90, 160, 22)]],
+      4: [[[66, 0], [8, 96], [95, 96]], [[66, 44], [66, 140]]],
+      5: [[[86, 0], [22, 0], [17, 64], ...arc(48, 98, 40, 40, -130, 155, 26)]],
+      6: [[...arc(70, 95, 58, 90, -105, -180, 16), ...arc(50, 100, 38, 38, 180, 540, 40)]],
+      7: [[[8, 0], [92, 0], [36, 140]]],
+      8: [[...arc(50, 105, 40, 35, -90, 270, 40), ...arc(50, 35, 32, 35, 90, -270, 40)]],
+      9: [[...arc(50, 40, 38, 40, 0, -360, 36), [88, 40], [86, 140]]]
+    };
+  })();
+  const DIGIT_WORDS = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix'];
+  const DIGIT_ITEMS = ['🍓', '⭐', '🐞', '🎈', '🌸', '🍎', '🐟', '🦋'];
+  function digitGame(G, f) {
+    const L = lvl('chiffres');
+    const max = L === 0 ? 5 : 10;
+    let next = store.get('digitNext', 1);
+    if (next > max) next = 1;
+    const nums = [next, next + 1, next + 2].map(n => ((n - 1) % max) + 1);
+    store.set('digitNext', nums[2] + 1);
+    const stage = $('#stage');
+    const row = el('div', 'digit-row');
+    const wrap = el('div', 'trace');
+    stage.append(row, wrap);
+    $('#caption').textContent = 'Suis le chemin avec ton doigt';
+    (async () => {
+      for (let i = 0; i < nums.length; i++) {
+        if (f !== G.flow) return;
+        const n = nums[i], item = pick(DIGIT_ITEMS);
+        row.innerHTML = `<span class="digit-big">${n}</span><span class="digit-items">${`<i>${item}</i>`.repeat(n)}</span>`;
+        const parts = String(n).split('');
+        for (let k = 0; k < parts.length; k++) {
+          if (f !== G.flow) return;
+          await traceLetter(wrap, parts[k], i + k, f, {
+            strokes: DIGITS[parts[k]], precise: L === 2,
+            label: parts.length > 1 ? `Le chiffre ${DIGIT_WORDS[n]}. ${k === 0 ? 'D\'abord le un' : 'Puis le zéro'}` : `Le chiffre ${DIGIT_WORDS[n]}`,
+            first: i === 0 && k === 0 ? 'On écrit les chiffres !' : ''
+          });
+        }
+        if (f !== G.flow) return;
+        sfx.good();
+        await Promise.all([say(`Bravo ! Tu as écrit ${DIGIT_WORDS[n]} !`), sleep(900)]);
+      }
+      if (f === G.flow) { G.n = G.total; nextQ(); }
+    })();
+  }
+
+  // ---------- Bilan pour les parents ----------
+  const loadStats = () => store.get('stats', {});
+  function statFor(all, id) { return all[id] || (all[id] = { plays: 0, q: 0, first: 0, conf: {}, last: '' }); }
+  function statAnswer(id, firstTry, confKey) {
+    const all = loadStats(), s = statFor(all, id);
+    if (confKey) s.conf[confKey] = (s.conf[confKey] || 0) + 1;
+    else { s.q++; if (firstTry) s.first++; }
+    store.set('stats', all);
+  }
+  function statPlay(id) {
+    const all = loadStats(), s = statFor(all, id);
+    s.plays++; s.last = dayKey();
+    store.set('stats', all);
+  }
+  function renderBilan() {
+    const box = $('#bilan'); if (!box) return;
+    box.innerHTML = '';
+    const all = loadStats();
+    const ids = ORDER.filter(id => all[id] && all[id].plays > 0).sort((a, b) => all[b].plays - all[a].plays);
+    if (!ids.length) { box.append(el('p', 'muted', 'Pas encore de partie terminée.')); return; }
+    const today = dayKey();
+    ids.forEach(id => {
+      const s = all[id];
+      const rowEl = el('div', 'bilan-row');
+      const pct = s.q >= 5 ? Math.round(100 * s.first / s.q) : null;
+      let tag = '';
+      if (pct != null && LEVEL_CFG[id] && !LEVEL_CFG[id].key) {
+        if (pct >= 90 && lvl(id) < LEVEL_CFG[id].opts.length - 1) tag = '<span class="tag up">Facile : vous pouvez augmenter</span>';
+        else if (pct < 55 && lvl(id) > 0) tag = '<span class="tag down">Difficile : baisser d\'un niveau ?</span>';
+      }
+      const confs = Object.entries(s.conf).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${k} ×${v}`).join(', ');
+      rowEl.innerHTML = `<div class="bilan-head"><b>${GAMES[id].icon} ${GAMES[id].name}</b><span>${s.plays} partie${s.plays > 1 ? 's' : ''}${s.last === today ? ' · aujourd\'hui' : ''}</span></div>`
+        + (pct != null ? `<div class="bar-wrap"><span class="bar-fill" style="width:${pct}%"></span></div><div class="muted">${pct} % trouvé du premier coup${tag ? ' ' + tag : ''}</div>` : '')
+        + (confs ? `<div class="muted">À la place de… a touché : ${confs}</div>` : '');
+      box.append(rowEl);
+    });
+  }
+
   // ---------- Écrans ----------
   let screen = 'start';
   function show(id) {
@@ -1787,7 +1959,8 @@
       b.onclick = () => answer(b, c, q, f);
       ch.append(b);
     });
-    say(q.prompt);
+    G.qMiss = 0;
+    say(q.prompt).then(() => { if (q.after && f === G.flow && !G.lock) q.after(); });
   }
 
   async function answer(b, c, q, f) {
@@ -1797,7 +1970,8 @@
       G.lock = true;
       sfx.good();
       b.classList.add('yes');
-      if (q.onCorrect) q.onCorrect(c);
+      statAnswer(G.id, !G.qMiss);
+      if (q.onCorrect) await q.onCorrect(c);
       $$('.choice', $('#choices')).forEach(x => { if (x !== b) x.classList.add('dim'); });
       const dot = $$('.dot')[G.n];
       if (dot) { dot.classList.add('on'); dot.textContent = '⭐'; }
@@ -1808,13 +1982,17 @@
     } else {
       sfx.soft();
       b.classList.add('no');
-      say(c.wrong);
+      G.qMiss = (G.qMiss || 0) + 1;
+      const target = q.choices.find(x => x.correct);
+      if (target) statAnswer(G.id, false, `${target.label.replace(/^(le |la |l'|les )/, '')} → ${c.label.replace(/^(le |la |l'|les )/, '')}`);
+      say(c.wrong).then(() => { if (q.afterWrong && f === G.flow && !G.lock) q.afterWrong(); });
     }
   }
 
   function repeat() { audio(); if (G && G.replay) G.replay(); else if (G && G.prompt) say(G.prompt); }
 
   function finish() {
+    statPlay(G.id);
     if (G.def.counting) store.set('countLevel', Math.min(settings.countMax, countLevel() + 2));
     if (G.id === 'memory') { const w = store.get('memLevel', 0); G.leveledUp = w < MEMORY_AUTO_MAX; if (G.leveledUp) store.set('memLevel', w + 1); }
     if (G.id === 'fil') { const w = store.get('mazeWins', 0); G.leveledUp = w < MAZE_LEVELS.length - 1; store.set('mazeWins', w + 1); }
@@ -1999,6 +2177,8 @@
     if ($('#mem-info')) $('#mem-info').textContent = ml2 > 0 ? `Memory en pause : encore ${ml2} autre(s) jeu(x)` : `Parties de memory d'affilée : ${store.get('memPlays', 0)}`;
     $('#album-info').textContent = `Album : ${loadStickers().length} autocollants`;
     renderLevels();
+    renderBilan();
+    renderCries();
     freshUsage();
     const min = Math.floor(usage.sec / 60);
     let info = `Joué aujourd'hui : ${min} min`;
@@ -2049,6 +2229,65 @@
   $('#set-limit').onchange = e => { settings.timeLimit = +e.target.value; saveSettings(); refreshParentInfo(); };
   $('#btn-test-voice').onclick = () => { audio(); sfx.good(); say(settings.name ? `Bonjour ${settings.name} ! Où est la carotte ?` : 'Bonjour ! Où est la carotte ?'); };
   $('#btn-count-reset').onclick = () => { store.set('countLevel', 5); refreshParentInfo(); };
+  // enregistrement des cris au micro
+  let recording = null;
+  function renderCries() {
+    const box = $('#cries'); if (!box) return;
+    box.innerHTML = '';
+    ANIMALS.forEach(an => {
+      const has = !!store.get(criKey(an.n), null);
+      const row = el('div', 'row cry-row');
+      row.append(el('span', '', `${an.e} ${cap(an.n)} ${has ? '<small class="rec-ok">(votre enregistrement)</small>' : ''}`));
+      const btns = el('span', 'tb');
+      const play = el('button', 'pill-text', '▶'); play.setAttribute('aria-label', 'Écouter'); play.onclick = () => { audio(); playCry(an); };
+      const rec = el('button', 'pill-text rec', recording && recording.n === an.n ? '■ Stop' : '● Enreg.');
+      rec.onclick = () => toggleRecord(an, rec);
+      btns.append(play, rec);
+      if (has) { const del = el('button', 'pill-text', '✕'); del.setAttribute('aria-label', 'Revenir au cri de l\'appli'); del.onclick = () => { try { localStorage.removeItem('mpj.' + criKey(an.n)); } catch (e) { /* rien */ } renderCries(); }; btns.append(del); }
+      row.append(btns);
+      box.append(row);
+    });
+  }
+  async function toggleRecord(an, btn) {
+    if (recording) { recording.stop(); return; }
+    const msg = $('#cry-msg');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      const chunks = [];
+      mr.ondataavailable = e => chunks.push(e.data);
+      mr.onstop = () => {
+        stream.getTracks().forEach(t => t.stop());
+        clearTimeout(mr._t); recording = null;
+        const blob = new Blob(chunks, { type: mr.mimeType || 'audio/webm' });
+        const fr = new FileReader();
+        fr.onload = () => {
+          try { localStorage.setItem('mpj.' + criKey(an.n), JSON.stringify(fr.result)); msg.textContent = `Enregistré : ${an.n}.`; }
+          catch (e) { msg.textContent = 'Plus de place pour enregistrer. Effacez un autre cri (✕) et réessayez.'; }
+          renderCries();
+        };
+        fr.readAsDataURL(blob);
+      };
+      recording = { n: an.n, stop: () => mr.state !== 'inactive' && mr.stop() };
+      mr.start();
+      mr._t = setTimeout(() => recording && recording.stop(), 4000);
+      msg.textContent = `Enregistrement du cri ${an.n === 'la vache' ? 'de la vache' : 'de ' + an.n}… (4 secondes maximum, touchez « Stop » pour finir)`;
+      renderCries();
+    } catch (e) {
+      msg.textContent = 'Le micro n\'est pas disponible. Autorisez le micro pour ce site dans Chrome, puis réessayez.';
+    }
+  }
+  $('#btn-bilan-reset').onclick = e => {
+    if (e.target.dataset.armed !== '1') { e.target.dataset.armed = '1'; e.target.textContent = 'Toucher encore'; setTimeout(() => { e.target.dataset.armed = ''; e.target.textContent = 'Effacer le bilan'; }, 3000); return; }
+    store.set('stats', {}); e.target.dataset.armed = ''; e.target.textContent = 'Effacer le bilan'; renderBilan();
+  };
+  // rubriques repliables, état retenu
+  $$('#parent details.pgroup').forEach(d => {
+    const k = 'open.' + d.dataset.k;
+    d.open = !!store.get(k, false);
+    d.addEventListener('toggle', () => store.set(k, d.open));
+  });
+
   function renderLevels() {
     $('#set-mempeek').value = String(settings.memPeek);
     $('#set-memdelay').value = settings.memDelay;

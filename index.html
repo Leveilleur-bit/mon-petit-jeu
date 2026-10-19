@@ -104,29 +104,43 @@
       <button id="btn-parent-close" class="pill-text">Fermer</button>
     </header>
 
-    <section class="pgroup">
-      <h3>Voix et sons</h3>
+    <details class="pgroup" data-k="bilan">
+      <summary>📊 Bilan</summary>
+      <p class="muted">Parties terminées, réussites du premier coup et confusions, jeu par jeu.</p>
+      <div id="bilan" class="bilan"></div>
+      <div class="row"><span></span><button id="btn-bilan-reset" class="pill-text">Effacer le bilan</button></div>
+    </details>
+
+    <details class="pgroup" data-k="s1">
+      <summary>Voix et sons</summary>
       <label class="row" for="set-volume"><span>Volume</span><input id="set-volume" type="range" min="0.2" max="1" step="0.1"></label>
       <label class="row" for="set-rate"><span>Vitesse de la voix</span><input id="set-rate" type="range" min="0.6" max="1.2" step="0.05"></label>
       <label class="row" for="set-effects"><span>Bruitages</span><input id="set-effects" type="checkbox" class="switch"></label>
       <div class="row"><span id="voice-info" class="muted"></span><button id="btn-test-voice" class="pill-text">Tester</button></div>
-    </section>
+    </details>
 
-    <section class="pgroup">
-      <h3>Enfant</h3>
+    <details class="pgroup" data-k="cris">
+      <summary>🐮 Cris des animaux</summary>
+      <p class="muted">Par défaut, l'appli fabrique les cris. Vous pouvez enregistrer les vôtres au micro (imitation, ou un vrai cri joué par une vidéo). « ✕ » revient au cri de l'appli.</p>
+      <div id="cries" class="cries"></div>
+      <p id="cry-msg" class="muted"></p>
+    </details>
+
+    <details class="pgroup" data-k="s2">
+      <summary>Enfant</summary>
       <label class="row" for="set-name"><span>Prénom <small>(facultatif)</small></span><input id="set-name" type="text" maxlength="20" autocomplete="off" placeholder="ex. Léa"></label>
       <p class="muted">Le prénom sert aux félicitations, et ses lettres passent en premier dans le jeu des lettres.</p>
-    </section>
+    </details>
 
-    <section class="pgroup">
-      <h3>Autres prénoms à écrire</h3>
+    <details class="pgroup" data-k="s3">
+      <summary>Autres prénoms à écrire</summary>
       <p class="muted">Pour le jeu « Mon prénom » : la famille, les copains… Ils deviennent des niveaux, du plus court au plus long, après le prénom de l'enfant.</p>
       <div class="row addname"><input id="set-newname" type="text" maxlength="60" autocomplete="off" placeholder="ex. Papa, Léo, Mamie"><button id="btn-addname" class="pill-text">Ajouter</button></div>
       <div id="names-list" class="names-list"></div>
-    </section>
+    </details>
 
-    <section class="pgroup">
-      <h3>Jeux</h3>
+    <details class="pgroup" data-k="s4">
+      <summary>Jeux</summary>
       <label class="row" for="set-home"><span>Accueil</span>
         <select id="set-home"><option value="rotate">9 jeux qui changent</option><option value="all">Tous les jeux</option></select>
       </label>
@@ -145,10 +159,10 @@
       <label class="row" for="set-letters"><span>Lettres</span>
         <select id="set-letters"><option value="simple">Les plus simples</option><option value="all">Tout l'alphabet</option></select>
       </label>
-    </section>
+    </details>
 
-    <section class="pgroup">
-      <h3>Difficulté par jeu</h3>
+    <details class="pgroup" data-k="s5">
+      <summary>Difficulté par jeu</summary>
       <p class="muted">1 = le plus facile. « Monte seul » : le niveau augmente aussi tout seul à chaque partie réussie.</p>
       <div id="set-levels" class="levels"></div>
       <div class="subopts">
@@ -164,16 +178,16 @@
         </label>
         <p class="muted">Le nombre de paires monte seul jusqu'à 6 ; 8 et 10 paires se choisissent ci-dessus.</p>
       </div>
-    </section>
+    </details>
 
-    <section class="pgroup">
-      <h3>Album</h3>
+    <details class="pgroup" data-k="s6">
+      <summary>Album</summary>
       <div class="row"><span id="album-info" class="muted"></span><button id="btn-album-reset" class="pill-text">Vider l'album</button></div>
       <p class="muted">Un autocollant est gagné à chaque partie finie.</p>
-    </section>
+    </details>
 
-    <section class="pgroup">
-      <h3>Temps d'écran</h3>
+    <details class="pgroup" data-k="s7">
+      <summary>Temps d'écran</summary>
       <label class="row" for="set-limit"><span>Limite par jour</span>
         <select id="set-limit"><option value="0">Sans limite</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="30">30 min</option><option value="45">45 min</option></select>
       </label>
@@ -182,7 +196,7 @@
       <div id="usage-log" class="usage-log"></div>
       <div class="row"><span class="muted">Une alerte vocale prévient 2 minutes avant la pause.</span><button id="btn-reset-time" class="pill-text">Remettre à zéro</button></div>
       <div class="row time-btns"><span>Aujourd'hui</span><span class="tb"><button id="btn-less" class="pill-text">− 10 min</button><button id="btn-extra" class="pill-text">+ 10 min</button></span></div>
-    </section>
+    </details>
 
     <p class="muted foot">Sans publicité, sans compte. Tout reste sur ce téléphone.</p>
   </div>

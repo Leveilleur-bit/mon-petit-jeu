@@ -11,7 +11,7 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | 🍓 Compter | Il touche chaque objet, la voix compte avec lui, puis il retrouve le chiffre. Commence jusqu'à 5 et monte de 2 à chaque partie (jusqu'à 30 maximum, réglable) |
 | 🎨 Couleurs | « Où est le rouge ? » : 11 couleurs |
 | 🔤 Lettres | « Où est la lettre B ? B comme ballon » : majuscules, lettres simples d'abord, celles du prénom en priorité |
-| 🐮 Animaux | « Qui fait meuh ? » |
+| 🐮 Animaux | « Écoute ! Qui fait ce bruit ? » : le cri est joué (cri fabriqué par l'appli, ou enregistré par les parents au micro) |
 | 👑 Memory | Choisir ses cartes (princesses, animaux, mer, fruits, véhicules, gourmandises ; un thème réussi est coché ✓ jusqu'à ce que tous soient faits), puis retrouver les paires : 3 paires au début, puis une de plus à chaque grille réussie (jusqu'à 6 ; 8 et 10 paires au choix). Options : trios au lieu de paires, coup d'œil sur toutes les cartes au début, temps d'affichage des cartes ratées. Bouton « Suivant » à la fin. Après 5 parties d'affilée (réglable), le memory se repose jusqu'à ce que 3 autres jeux soient finis |
 | 🧩 Puzzles | Choisir une image (château, licorne, tracteur…) et faire glisser les morceaux ; une image réussie est cochée ✓ et il faut en choisir une autre, jusqu'à les avoir toutes faites : 2 morceaux au début, puis 4, 6 et 9 à chaque puzzle réussi. Bouton « Suivant » : image suivante, un peu plus difficile |
 | 📖 Lire | Toucher les syllabes une par une (LA · PIN), la voix les lit, puis lit le mot entier. Syllabes en bleu et rouge, comme à l'école |
@@ -22,6 +22,7 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | 🖍️ Coloriage | 5 dessins (maison, fleur, poisson, papillon, voiture) : choisir une couleur, toucher une zone. Bouton vert pour finir, « Suivant » pour le dessin d'après |
 | 🎵 Musique | Xylophone libre, ou 3 chansons guidées (la barre à toucher brille) : Au clair de la lune, Frère Jacques, Ah vous dirai-je maman |
 | 🛤️ Le bon chemin | Un animal a faim, son goûter brille en bas. On fait glisser l'animal avec le doigt sur l'un des trois chemins ; s'il mène ailleurs, l'animal revient au départ et ce chemin se grise. Une petite main montre le geste. Chemins séparés au début, puis qui se croisent, puis de la même couleur |
+| 🔢 Les chiffres | Tracer les chiffres au doigt (1 à 5, puis 1 à 10), avec autant d'objets que le chiffre ; 3 chiffres par partie, on reprend où on s'était arrêté |
 | 🐰 Le goûter | « Le lapin a faim ! Qu'est-ce qu'il mange ? » : retrouver le repas de 12 animaux (carotte, banane, miel, noisette, fromage…) |
 
 **Accueil** : 9 jeux tirés au hasard à chaque ouverture de l'appli, en priorité ceux qui n'étaient pas affichés la fois précédente (réglable : « Tous les jeux »). Les jeux marqués ⭐ dans le coin des parents sont toujours affichés (Memory par défaut).
@@ -33,7 +34,12 @@ En cas d'erreur, l'image se grise et la voix dit ce que c'était (« Ça, c'est 
 
 ## Coin des parents
 
-Appui long (2 secondes) sur la petite roue en haut à droite de l'écran des jeux.
+Appui long (2 secondes) sur la petite roue en haut à droite de l'écran des jeux. Les rubriques se replient.
+
+**📊 Bilan** : pour chaque jeu, nombre de parties, pourcentage trouvé du premier coup, confusions fréquentes (ex. « violet → bleu »), et une suggestion pour monter ou baisser la difficulté.
+
+**🐮 Cris des animaux** : écouter chaque cri, l'enregistrer au micro (4 s max), ou revenir au cri de l'appli.
+
 Réglages : **difficulté jeu par jeu** (nombre d'images, formes seules ou avec couleurs, tracé facile ou précis, nombre de paires, de morceaux…), volume, vitesse de la voix, bruitages, prénom, autres prénoms à écrire, jeux affichés, « compter jusqu'à », lettres simples ou tout l'alphabet, jeux favoris ⭐, vider l'album, limite de temps d'écran par jour (temps cumulé sur toute la journée, liste des utilisations du jour, alerte vocale 2 minutes avant, « − 10 min », « + 10 min » et remise à zéro).
 Tout est enregistré sur le téléphone uniquement.
 
@@ -54,7 +60,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v15` → `v16`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v16` → `v17`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique

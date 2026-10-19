@@ -533,6 +533,44 @@ svg path.stroke { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-li
 .usage-log { display: flex; flex-wrap: wrap; gap: 6px; }
 .log-chip { background: var(--sky-2); border-radius: 999px; padding: 4px 10px; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
+/* Coin des parents : rubriques repliables */
+details.pgroup { display: block; }
+details.pgroup > summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  font-family: var(--f-display); font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-soft);
+  min-height: 32px;
+}
+details.pgroup > summary::-webkit-details-marker { display: none; }
+details.pgroup > summary::after { content: "▾"; font-size: 20px; transition: transform .2s; }
+details.pgroup[open] > summary::after { transform: rotate(180deg); }
+details.pgroup > :not(summary) { margin-top: 12px; }
+
+/* Bilan */
+.bilan { display: flex; flex-direction: column; gap: 12px; }
+.bilan-row { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; border-top: 1px solid var(--sky); }
+.bilan-row:first-child { border-top: 0; padding-top: 0; }
+.bilan-head { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 15px; }
+.bilan-head span { color: var(--ink-soft); font-size: 14px; font-variant-numeric: tabular-nums; }
+.bar-wrap { height: 8px; border-radius: 4px; background: var(--sky-2); overflow: hidden; }
+.bar-fill { display: block; height: 100%; border-radius: 4px; background: var(--grass); }
+.tag { display: inline-block; margin-left: 4px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 800; }
+.tag.up { background: var(--leaf-bg); color: var(--grass-dk); }
+.tag.down { background: #FFE9D6; color: #B4581C; }
+
+/* Cris */
+.cries { display: flex; flex-direction: column; gap: 4px; }
+.cry-row { border-top: 1px solid var(--sky); padding-top: 4px; }
+.cry-row .tb { display: flex; gap: 6px; }
+.cry-row .pill-text { padding: 8px 12px; }
+.rec-ok { color: var(--grass-dk); font-weight: 700; }
+.bubble.ring { animation: pulse .5s ease-in-out 2; }
+
+/* Chiffres */
+.digit-row { display: flex; align-items: center; gap: 12px; justify-content: center; min-height: 64px; }
+.digit-big { font-family: var(--f-display); font-weight: 800; font-size: 56px; line-height: 1; color: var(--berry); padding-top: .08em; }
+.digit-items { display: flex; flex-wrap: wrap; gap: 2px; max-width: 60vw; font-size: 24px; line-height: 1.2; }
+.digit-items i { font-style: normal; }
+
 /* ---------- Fin / pause ---------- */
 .big-star { font-size: clamp(110px, 32vw, 170px); line-height: 1; animation: star-in 1s cubic-bezier(.3, 1.6, .5, 1); }
 .end-title { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 52px; line-height: 1; }
