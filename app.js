@@ -1876,19 +1876,43 @@
   freshUsage();
   let pendingRest = false;
   const limitReached = () => { freshUsage(); return settings.timeLimit > 0 && usage.sec >= (settings.timeLimit + usage.extra) * 60; };
+  // Temps d'écran : on compte le temps réellement écoulé (horloge), seulement quand l'appli est
+  // visible et hors coin des parents. Chaque utilisation de la journée est notée (heure + durée).
+  let lastTick = 0;
   setInterval(() => {
-    if (document.hidden || !['home', 'game', 'end', 'album'].includes(screen)) return;
+    const now = Date.now();
+    const counting = !document.hidden && ['home', 'game', 'end', 'album'].includes(screen);
+    if (!counting) { lastTick = 0; return; }
+    const stored = store.get('usage', null);                 // relit : une autre fenêtre a pu compter aussi
+    if (stored && stored.day === dayKey() && stored.sec > (usage?.sec || 0)) usage = stored;
     freshUsage();
-    usage.sec += 5;
+    const delta = lastTick ? Math.min(now - lastTick, 6000) / 1000 : 0;
+    const gap = usage.lastAt ? now - usage.lastAt : Infinity;
+    usage.log = usage.log || [];
+    if (gap > 120000 || !usage.log.length) {
+      const d = new Date(now);
+      usage.log.push({ at: `${d.getHours()}h${String(d.getMinutes()).padStart(2, '0')}`, sec: 0 });
+      if (usage.log.length > 30) usage.log.shift();
+    }
+    usage.sec += delta;
+    usage.log[usage.log.length - 1].sec += delta;
+    usage.lastAt = now;
+    lastTick = now;
     store.set('usage', usage);
+    const left = (settings.timeLimit + usage.extra) * 60 - usage.sec;
+    if (settings.timeLimit > 0 && left > 0 && left <= 120 && !usage.warned) {
+      usage.warned = true; store.set('usage', usage);
+      if (screen !== 'game') say('Encore deux minutes, et ce sera la pause !');
+      else setTimeout(() => say('Encore deux minutes de jeu !'), 2500);
+    }
     if (limitReached()) {
       if (screen === 'game') pendingRest = true; // on laisse finir la partie en cours
       else if (screen === 'album') {          // après la limite, l'album reste ouvert 5 minutes
-        usage.albumSec = (usage.albumSec || 0) + 5; store.set('usage', usage);
+        usage.albumSec = (usage.albumSec || 0) + delta; store.set('usage', usage);
         if (usage.albumSec >= ALBUM_AFTER) goRest();
       } else goRest();
     }
-  }, 5000);
+  }, 2000);
   const ALBUM_AFTER = 300;
   function goRest() {
     hush(); pendingRest = false; releaseAwake();
@@ -1981,6 +2005,9 @@
     if (usage.extra) info += ` · ${usage.extra > 0 ? '+' : '−'}${Math.abs(usage.extra)} min aujourd'hui`;
     if (settings.timeLimit > 0) info += ` · reste ${Math.max(0, settings.timeLimit + usage.extra - min)} min`;
     $('#usage-info').textContent = info;
+    const lg = $('#usage-log'); lg.innerHTML = '';
+    (usage.log || []).filter(e => e.sec >= 30).forEach(e => lg.append(el('span', 'log-chip', `${e.at} · ${Math.round(e.sec / 60)} min`)));
+    if (!lg.children.length) lg.append(el('span', 'muted', 'Pas encore joué aujourd\'hui.'));
     $('#btn-less').disabled = settings.timeLimit > 0 && settings.timeLimit + usage.extra <= 0;
   }
   $('#set-volume').oninput = e => { settings.volume = +e.target.value; saveSettings(); };
@@ -2043,6 +2070,10 @@
     });
   }
   $('#btn-extra').onclick = () => { freshUsage(); usage.extra += 10; store.set('usage', usage); refreshParentInfo(); };
+  $('#btn-reset-time').onclick = e => {
+    if (e.target.dataset.armed !== '1') { e.target.dataset.armed = '1'; e.target.textContent = 'Toucher encore'; setTimeout(() => { e.target.dataset.armed = ''; e.target.textContent = 'Remettre à zéro'; }, 3000); return; }
+    usage = { day: dayKey(), sec: 0, extra: 0 }; store.set('usage', usage); e.target.dataset.armed = ''; e.target.textContent = 'Remettre à zéro'; refreshParentInfo();
+  };
   $('#btn-less').onclick = () => { freshUsage(); usage.extra = Math.max(-settings.timeLimit, usage.extra - 10); store.set('usage', usage); refreshParentInfo(); };
   $('#btn-parent-close').onclick = () => { saveSettings(); goHome(false); };
 
