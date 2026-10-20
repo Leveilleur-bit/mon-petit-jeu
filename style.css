@@ -561,7 +561,8 @@ details.pgroup > :not(summary) { margin-top: 12px; }
 .cries { display: flex; flex-direction: column; gap: 4px; }
 .cry-row { border-top: 1px solid var(--sky); padding-top: 4px; }
 .cry-row .tb { display: flex; gap: 6px; }
-.cry-row .pill-text { padding: 8px 12px; }
+.cry-row .pill-text { padding: 8px 10px; }
+.cry-row { flex-wrap: wrap; }
 .rec-ok { color: var(--grass-dk); font-weight: 700; }
 .bubble.ring { animation: pulse .5s ease-in-out 2; }
 

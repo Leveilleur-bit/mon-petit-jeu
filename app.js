@@ -2242,7 +2242,24 @@
       const play = el('button', 'pill-text', '▶'); play.setAttribute('aria-label', 'Écouter'); play.onclick = () => { audio(); playCry(an); };
       const rec = el('button', 'pill-text rec', recording && recording.n === an.n ? '■ Stop' : '● Enreg.');
       rec.onclick = () => toggleRecord(an, rec);
-      btns.append(play, rec);
+      const imp = el('button', 'pill-text', '📁'); imp.setAttribute('aria-label', 'Importer un fichier son');
+      imp.onclick = () => {
+        const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'audio/*';
+        inp.onchange = () => {
+          const file = inp.files && inp.files[0]; if (!file) return;
+          const msg = $('#cry-msg');
+          if (file.size > 700 * 1024) { msg.textContent = 'Ce fichier est trop gros (700 Ko maximum). Choisissez un son court, de quelques secondes.'; return; }
+          const fr = new FileReader();
+          fr.onload = () => {
+            try { localStorage.setItem('mpj.' + criKey(an.n), JSON.stringify(fr.result)); msg.textContent = `Son importé pour ${an.n}.`; audio(); playCry(an); }
+            catch (e) { msg.textContent = 'Plus de place pour ce son. Effacez un autre cri (✕) ou choisissez un fichier plus court.'; }
+            renderCries();
+          };
+          fr.readAsDataURL(file);
+        };
+        inp.click();
+      };
+      btns.append(play, rec, imp);
       if (has) { const del = el('button', 'pill-text', '✕'); del.setAttribute('aria-label', 'Revenir au cri de l\'appli'); del.onclick = () => { try { localStorage.removeItem('mpj.' + criKey(an.n)); } catch (e) { /* rien */ } renderCries(); }; btns.append(del); }
       row.append(btns);
       box.append(row);
