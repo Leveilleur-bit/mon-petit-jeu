@@ -20,7 +20,7 @@
   const DEFAULTS = {
     volume: 1, rate: 0.9, effects: true, name: '', names: [],
     countMax: 30, letters: 'simple', timeLimit: 0, memLimit: 5, levels: {}, memPeek: 0, memDelay: 'normal', memGroup: 2,
-    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true, fil: true, gouter: true, chiffres: true },
+    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true, fil: true, gouter: true, chiffres: true, vivant: true, cycle: true },
     homeMode: 'rotate', favs: ['memory']
   };
   const saved = store.get('settings', {});
@@ -272,6 +272,14 @@
       name: 'Musique', intro: 'La musique !', icon: '🎵', color: '#16A3A3', rounds: 1, full: true,
       make(G) { return { custom: musicGame }; }
     },
+    vivant: {
+      name: 'Vivant ou pas ?', intro: 'Vivant, ou pas vivant ?', icon: '🌱', color: '#3F9A43', rounds: 6,
+      make(G) { return vivantQuestion(G); }
+    },
+    cycle: {
+      name: 'Ça grandit !', intro: 'Comment ça grandit ?', icon: '🐣', color: '#E8A400', rounds: 3,
+      make(G) { return { custom: cycleGame }; }
+    },
     chiffres: {
       name: 'Les chiffres', intro: 'On écrit les chiffres !', icon: '🔢', color: '#7A5BD6', rounds: 1, full: true,
       make(G) { return { custom: digitGame }; }
@@ -379,6 +387,8 @@
     tailles: { opts: ['Grand et petit', 'Grand, moyen, petit'], def: 1 },
     ombres: { opts: ['2 choix', '3 choix', '4 choix'], def: 1 },
     lire: { opts: ['Mots courts', 'Tous les mots'], def: 1 },
+    vivant: { opts: ['Animaux et objets', '+ les plantes', '+ les pièges (nounours, robot, soleil…)'], def: 1 },
+    cycle: { opts: ['3 étapes', '4 étapes'], def: 0 },
     chiffres: { opts: ['1 à 5', '1 à 10', '1 à 10, tracé précis'], def: 0 },
     prenom: { opts: ['Lettres seulement', 'Lettres + tracé facile', 'Lettres + tracé précis'], def: 1 },
     memory: { opts: ['3 paires', '4 paires', '5 paires', '6 paires', '8 paires', '10 paires'], key: 'memLevel' },
@@ -397,7 +407,7 @@
   }
   const nOthers = id => [1, 2, 3][lvl(id)];
 
-  const ORDER = ['potager', 'compter', 'couleurs', 'lettres', 'animaux', 'memory', 'puzzle', 'lire', 'prenom', 'formes', 'tailles', 'ombres', 'coloriage', 'musique', 'fil', 'gouter', 'chiffres'];
+  const ORDER = ['potager', 'compter', 'couleurs', 'lettres', 'animaux', 'memory', 'puzzle', 'lire', 'prenom', 'formes', 'tailles', 'ombres', 'coloriage', 'musique', 'fil', 'gouter', 'chiffres', 'vivant', 'cycle'];
 
   function letterPool() {
     const base = settings.letters === 'all' ? LETTERS : LETTERS.filter(x => SIMPLE_LETTERS.includes(x.l));
@@ -1853,9 +1863,137 @@
       const confs = Object.entries(s.conf).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${k} ×${v}`).join(', ');
       rowEl.innerHTML = `<div class="bilan-head"><b>${GAMES[id].icon} ${GAMES[id].name}</b><span>${s.plays} partie${s.plays > 1 ? 's' : ''}${s.last === today ? ' · aujourd\'hui' : ''}</span></div>`
         + (pct != null ? `<div class="bar-wrap"><span class="bar-fill" style="width:${pct}%"></span></div><div class="muted">${pct} % trouvé du premier coup${tag ? ' ' + tag : ''}</div>` : '')
-        + (confs ? `<div class="muted">À la place de… a touché : ${confs}</div>` : '');
+        + (confs ? `<div class="muted">Erreurs fréquentes : ${confs}</div>` : '');
       box.append(rowEl);
     });
+  }
+
+  // ---------- Vivant ou pas ? ----------
+  // lv : niveau à partir duquel l'image apparaît (0 = évident, 1 = plantes, 2 = pièges)
+  const VIVANT = [
+    { e: '🐶', n: 'le chien', v: true, lv: 0, why: 'il mange, il respire et il grandit' },
+    { e: '🐟', n: 'le poisson', v: true, lv: 0, why: 'il mange, il respire et il grandit' },
+    { e: '🐦', n: "l'oiseau", v: true, lv: 0, why: 'il mange, il respire et il grandit' },
+    { e: '👶', n: 'le bébé', v: true, lv: 0, why: 'il mange, il respire et il grandit' },
+    { e: '🐞', n: 'la coccinelle', v: true, lv: 0, why: 'elle mange, elle respire et elle grandit' },
+    { e: '🐴', n: 'le cheval', v: true, lv: 0, why: 'il mange, il respire et il grandit' },
+    { e: '🐌', n: "l'escargot", v: true, lv: 0, why: 'il mange, il respire et il grandit' },
+    { e: '🦋', n: 'le papillon', v: true, lv: 0, why: 'il mange, il respire et il grandit' },
+    { e: '🌸', n: 'la fleur', v: true, lv: 1, why: "elle boit de l'eau et elle grandit" },
+    { e: '🌳', n: "l'arbre", v: true, lv: 1, why: "il boit de l'eau et il grandit" },
+    { e: '🌵', n: 'le cactus', v: true, lv: 1, why: "il boit de l'eau et il grandit" },
+    { e: '🌻', n: 'le tournesol', v: true, lv: 1, why: "il boit de l'eau et il grandit" },
+    { e: '🪑', n: 'la chaise', v: false, lv: 0, why: 'elle ne mange pas et elle ne grandit pas' },
+    { e: '🎁', n: 'le cadeau', v: false, lv: 0, why: 'il ne mange pas et il ne grandit pas' },
+    { e: '🎸', n: 'la guitare', v: false, lv: 0, why: 'elle ne mange pas et elle ne grandit pas' },
+    { e: '🚗', n: 'la voiture', v: false, lv: 0, why: 'elle ne mange pas et elle ne grandit pas' },
+    { e: '⚽', n: 'le ballon', v: false, lv: 0, why: 'il ne mange pas et il ne grandit pas' },
+    { e: '✏️', n: 'le crayon', v: false, lv: 0, why: 'il ne mange pas et il ne grandit pas' },
+    { e: '🏠', n: 'la maison', v: false, lv: 0, why: 'elle ne mange pas et elle ne grandit pas' },
+    { e: '🪨', n: 'le caillou', v: false, lv: 1, why: 'il ne mange pas et il ne grandit pas' },
+    { e: '⛵', n: 'le bateau', v: false, lv: 1, why: 'il ne mange pas et il ne grandit pas' },
+    { e: '🧸', n: 'le nounours', v: false, lv: 2, why: 'il a des yeux, mais il ne mange pas et il ne grandit pas' },
+    { e: '🤖', n: 'le robot', v: false, lv: 2, why: 'il bouge, mais il ne mange pas et il ne grandit pas' },
+    { e: '☁️', n: 'le nuage', v: false, lv: 2, why: "il bouge dans le ciel, mais il ne mange pas et il ne grandit pas" },
+    { e: '☀️', n: 'le soleil', v: false, lv: 2, why: "il brille, mais il ne mange pas et il ne grandit pas" }
+  ];
+  function vivantQuestion(G) {
+    const L = lvl('vivant');
+    const pool = VIVANT.filter(x => x.lv <= L);
+    // alterner vivant / pas vivant à peu près, sans être prévisible
+    const want = G.n === 0 ? Math.random() < 0.5 : (Math.random() < 0.5);
+    const sub = pool.filter(x => x.v === want && !G.used.has(x.n));
+    const t = sub.length ? pick(sub) : pickNew(pool, G, x => x.n);
+    G.used.add(t.n);
+    const card = el('button', 'vcard', `<span class="emo">${t.e}</span>`);
+    card.setAttribute('aria-label', 'Écouter encore');
+    card.onclick = repeat;
+    const isF = /^la /.test(t.n);
+    const yes = { html: '<span class="basket-ic">🌱</span><span class="basket-lb">Vivant</span>', v: true };
+    const no = { html: '<span class="basket-ic">🪨</span><span class="basket-lb">Pas vivant</span>', v: false };
+    return {
+      visual: card,
+      prompt: `${cap(t.n)}. Est-ce que ${isF ? 'elle' : 'il'} est vivant${isF ? 'e' : ''} ? Range-${isF ? 'la' : 'le'} dans le bon panier !`,
+      caption: 'Vivant ou pas vivant ?',
+      success: `${cap(t.n)} ${t.v ? 'est vivant' : "n'est pas vivant"}${isF ? 'e' : ''} : ${t.why}.`,
+      row: true, cls: 'baskets', confKey: t.n,
+      onCorrect: () => { card.classList.add(t.v ? 'fly-l' : 'fly-r'); },
+      choices: [yes, no].map(c => ({
+        html: c.html, label: c.v ? 'vivant' : 'pas vivant', correct: c.v === t.v,
+        wrong: t.v ? `${cap(t.n)}, est-ce qu'${isF ? 'elle' : 'il'} mange ? Est-ce qu'${isF ? 'elle' : 'il'} grandit ? Oui ! Essaie l'autre panier.`
+          : `${cap(t.n)}, est-ce qu'${isF ? 'elle' : 'il'} mange ? Est-ce qu'${isF ? 'elle' : 'il'} grandit ? Non ! Essaie l'autre panier.`
+      }))
+    };
+  }
+
+  // ---------- Ça grandit ! (cycles de la vie) ----------
+  const SVG_STAGE = {
+    chrysalide: '<svg viewBox="0 0 60 80" class="stage-svg" aria-hidden="true"><path d="M30 4 V14" stroke="#6b5a3a" stroke-width="3"/><path d="M30 14 C 46 22, 46 56, 30 76 C 14 56, 14 22, 30 14 Z" fill="#7FBF5A" stroke="#4E8A33" stroke-width="2.5"/><path d="M24 32 Q30 36 36 32 M23 44 Q30 48 37 44" stroke="#4E8A33" stroke-width="2" fill="none"/></svg>',
+    graine: '<svg viewBox="0 0 80 60" class="stage-svg" aria-hidden="true"><ellipse cx="40" cy="38" rx="22" ry="14" fill="#9C6B3C" stroke="#6E4724" stroke-width="2.5"/><path d="M26 34 Q40 28 54 34" stroke="#C99A6B" stroke-width="2.5" fill="none"/><path d="M6 52 H74" stroke="#8B6B4A" stroke-width="3" stroke-linecap="round"/></svg>',
+    tetard: '<svg viewBox="0 0 90 60" class="stage-svg" aria-hidden="true"><ellipse cx="30" cy="30" rx="16" ry="13" fill="#3B3B46"/><path d="M44 30 C 58 18, 70 42, 86 28" stroke="#3B3B46" stroke-width="6" fill="none" stroke-linecap="round"/><circle cx="24" cy="26" r="3" fill="#fff"/></svg>',
+    oeufs: '<svg viewBox="0 0 90 60" class="stage-svg" aria-hidden="true"><g fill="#CFE8F7" stroke="#8DB8D4" stroke-width="2">' + [[20, 22], [40, 18], [60, 24], [30, 40], [52, 42], [72, 38]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="9"/>`).join('') + '</g><g fill="#2B2B33">' + [[20, 22], [40, 18], [60, 24], [30, 40], [52, 42], [72, 38]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3.5"/>`).join('') + '</g></svg>'
+  };
+  const CYCLES = [
+    { n: 'la poule', st: [{ e: '🥚', n: "l'œuf" }, { e: '🐣', n: 'le poussin qui sort de l\'œuf' }, { e: '🐥', n: 'le poussin' }, { e: '🐔', n: 'la poule' }], short: [0, 2, 3] },
+    { n: 'le papillon', st: [{ e: '🥚', n: "l'œuf" }, { e: '🐛', n: 'la chenille' }, { s: 'chrysalide', n: 'la chrysalide' }, { e: '🦋', n: 'le papillon' }], short: [1, 2, 3] },
+    { n: 'la fleur', st: [{ s: 'graine', n: 'la graine' }, { e: '🌱', n: 'la petite pousse' }, { e: '🌿', n: 'la plante' }, { e: '🌻', n: 'la fleur' }], short: [0, 1, 3] },
+    { n: 'la grenouille', st: [{ s: 'oeufs', n: 'les œufs' }, { s: 'tetard', n: 'le têtard' }, { e: '🐸', n: 'la grenouille' }], short: [0, 1, 2] },
+    { n: 'une personne', st: [{ e: '👶', n: 'le bébé' }, { e: '🧒', n: "l'enfant" }, { e: '🧑', n: "l'adulte" }, { e: '👵', n: 'la mamie' }], short: [0, 1, 3] }
+  ];
+  const stageHtml = s => s.e ? `<span class="emo">${s.e}</span>` : SVG_STAGE[s.s];
+  function cycleGame(G, f) {
+    const L = lvl('cycle');
+    const cyc = pickNew(CYCLES, G, c => c.n);
+    const stages = (L === 0 ? cyc.short.map(i => cyc.st[i]) : cyc.st);
+    const stage = $('#stage');
+    const slots = el('div', 'cyc-slots');
+    stages.forEach((s, i) => {
+      if (i) slots.append(el('span', 'cyc-arrow', '➜'));
+      const sl = el('div', 'cyc-slot', `<span class="cyc-num">${i + 1}</span>`);
+      slots.append(sl);
+    });
+    stage.append(slots);
+    const ch = $('#choices');
+    ch.className = 'choices row cyc-cards';
+    ch.style.gridTemplateColumns = `repeat(${stages.length}, minmax(0, 1fr))`;
+    let k = 0, miss = 0;
+    const order = shuffle(stages.map((s, i) => i));
+    if (order.every((v, i) => v === i)) order.reverse();
+    order.forEach((idx, j) => {
+      const s = stages[idx];
+      const b = el('button', 'choice cyc-card', stageHtml(s));
+      b.setAttribute('aria-label', s.n);
+      b.style.animationDelay = (j * 90) + 'ms';
+      b.onclick = async () => {
+        if (f !== G.flow || b.disabled) return;
+        audio();
+        if (idx === k) {
+          b.disabled = true; b.classList.add('used');
+          const sl = $$('.cyc-slot', slots)[k];
+          sl.innerHTML = stageHtml(s); sl.classList.add('filled');
+          sfx.count(k + 1);
+          if (!miss) statAnswer('cycle', true); else statAnswer('cycle', false);
+          miss = 0; k++;
+          if (k < stages.length) { say(k === 1 ? `D'abord, ${s.n}. Et après ?` : `Puis ${s.n}. Et après ?`); return; }
+          sfx.good();
+          slots.classList.add('whole');
+          await say(`Bravo ! ${cap(stages.map(x => x.n).join(', puis '))} !`);
+          if (f !== G.flow) return;
+          const dot = $$('.dot')[G.n]; if (dot) { dot.classList.add('on'); dot.textContent = '⭐'; }
+          await sleep(500);
+          G.n++; if (f === G.flow) nextQ();
+        } else {
+          miss++;
+          statAnswer('cycle', false, `${stages[k].n} → ${s.n}`);
+          sfx.soft(); b.classList.remove('no'); void b.offsetWidth; b.classList.add('nope');
+          say(k === 0 ? `Pas encore ! Qu'est-ce qui vient en tout premier ?` : `Pas encore ! Qu'est-ce qui vient juste après ${stages[k - 1].n} ?`);
+        }
+      };
+      ch.append(b);
+    });
+    $('#caption').textContent = 'Remets dans l\'ordre';
+    G.prompt = `Comment grandit ${cyc.n} ? Touche les images dans l'ordre : qu'est-ce qui vient en premier ?`;
+    say(G.prompt);
   }
 
   // ---------- Écrans ----------
@@ -1984,7 +2122,8 @@
       b.classList.add('no');
       G.qMiss = (G.qMiss || 0) + 1;
       const target = q.choices.find(x => x.correct);
-      if (target) statAnswer(G.id, false, `${target.label.replace(/^(le |la |l'|les )/, '')} → ${c.label.replace(/^(le |la |l'|les )/, '')}`);
+      if (q.confKey) statAnswer(G.id, false, q.confKey);
+      else if (target) statAnswer(G.id, false, `${target.label.replace(/^(le |la |l'|les )/, '')} → ${c.label.replace(/^(le |la |l'|les )/, '')}`);
       say(c.wrong).then(() => { if (q.afterWrong && f === G.flow && !G.lock) q.afterWrong(); });
     }
   }

@@ -24,6 +24,8 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | 🛤️ Le bon chemin | Un animal a faim, son goûter brille en bas. On fait glisser l'animal avec le doigt sur l'un des trois chemins ; s'il mène ailleurs, l'animal revient au départ et ce chemin se grise. Une petite main montre le geste. Chemins séparés au début, puis qui se croisent, puis de la même couleur |
 | 🔢 Les chiffres | Tracer les chiffres au doigt (1 à 5, puis 1 à 10), avec autant d'objets que le chiffre ; 3 chiffres par partie, on reprend où on s'était arrêté |
 | 🐰 Le goûter | « Le lapin a faim ! Qu'est-ce qu'il mange ? » : retrouver le repas de 12 animaux (carotte, banane, miel, noisette, fromage…) |
+| 🌱 Vivant ou pas ? | Ranger chaque image dans le panier « Vivant » ou « Pas vivant ». La voix explique pourquoi (« il mange, il respire et il grandit »). Niveaux : animaux et objets, + plantes, + pièges (nounours, robot, soleil, nuage) |
+| 🐣 Ça grandit ! | Remettre dans l'ordre les étapes de la vie : poule, papillon (chenille, chrysalide), fleur, grenouille (têtard), personne. 3 ou 4 étapes |
 
 **Accueil** : 9 jeux tirés au hasard à chaque ouverture de l'appli, en priorité ceux qui n'étaient pas affichés la fois précédente (réglable : « Tous les jeux »). Les jeux marqués ⭐ dans le coin des parents sont toujours affichés (Memory par défaut).
 
@@ -60,7 +62,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v17` → `v18`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v18` → `v19`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique

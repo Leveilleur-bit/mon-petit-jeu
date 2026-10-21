@@ -572,6 +572,33 @@ details.pgroup > :not(summary) { margin-top: 12px; }
 .digit-items { display: flex; flex-wrap: wrap; gap: 2px; max-width: 60vw; font-size: 24px; line-height: 1.2; }
 .digit-items i { font-style: normal; }
 
+/* Vivant ou pas */
+.vcard { border: 0; background: var(--card); border-radius: 50%; width: min(44vw, 180px); aspect-ratio: 1; max-width: 100%; box-shadow: 0 7px 0 var(--card-edge); display: grid; place-items: center; margin-top: 2vh; transition: transform .6s cubic-bezier(.5, -0.3, .7, 1), opacity .6s; }
+.vcard .emo { font-size: min(24vw, 104px); line-height: 1; }
+.vcard.fly-l { transform: translate(-25vw, 38vh) scale(.3); opacity: 0; }
+.vcard.fly-r { transform: translate(25vw, 38vh) scale(.3); opacity: 0; }
+#game .choices.baskets { grid-template-columns: 1fr 1fr; margin-top: auto; }
+.choices.baskets .choice { min-height: 150px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border-radius: 26px 26px 40px 40px; }
+.choices.baskets .choice:first-child { background: var(--leaf-bg); box-shadow: 0 7px 0 var(--grass); }
+.choices.baskets .choice:last-child { background: #ECEFF4; box-shadow: 0 7px 0 #B9C2D0; }
+.basket-ic { font-size: 56px; line-height: 1; }
+.basket-lb { font-family: var(--f-display); font-weight: 800; font-size: 20px; color: var(--ink); }
+
+/* Ça grandit */
+.cyc-slots { display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; margin-top: 3vh; }
+.cyc-slot { flex: 1; max-width: 96px; aspect-ratio: 1; border-radius: 20px; border: 3px dashed var(--card-edge); background: rgb(255 255 255 / .6); display: grid; place-items: center; position: relative; }
+.cyc-slot.filled { border: 0; background: var(--card); box-shadow: 0 5px 0 var(--grass); animation: pop-in .4s cubic-bezier(.3, 1.8, .5, 1); }
+.cyc-slot .emo { font-size: clamp(36px, 11vw, 60px); line-height: 1; }
+.cyc-num { font-family: var(--f-display); font-weight: 800; font-size: 28px; color: var(--card-edge); }
+.cyc-arrow { color: var(--ink-soft); font-size: 18px; flex: none; }
+.cyc-slots.whole .cyc-slot { animation: joy .8s; }
+.stage-svg { width: 70%; height: auto; max-height: 80%; }
+#game .choices.cyc-cards { margin-top: auto; margin-bottom: 6vh; }
+.cyc-card { min-height: 120px; }
+.cyc-card .emo { font-size: clamp(48px, 13vw, 76px); }
+.cyc-card.used { opacity: .2; }
+.choice.nope { animation: wobble .5s; }
+
 /* ---------- Fin / pause ---------- */
 .big-star { font-size: clamp(110px, 32vw, 170px); line-height: 1; animation: star-in 1s cubic-bezier(.3, 1.6, .5, 1); }
 .end-title { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 52px; line-height: 1; }
