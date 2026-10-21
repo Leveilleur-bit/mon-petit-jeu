@@ -20,7 +20,7 @@
   const DEFAULTS = {
     volume: 1, rate: 0.9, effects: true, name: '', names: [],
     countMax: 30, letters: 'simple', timeLimit: 0, memLimit: 5, levels: {}, memPeek: 0, memDelay: 'normal', memGroup: 2,
-    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true, fil: true, gouter: true, chiffres: true, vivant: true, cycle: true },
+    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true, fil: true, gouter: true, chiffres: true, vivant: true, cycle: true, nombres: true, monde_animaux: true, nature: true, formescouleurs: true, mots: true },
     homeMode: 'rotate', favs: ['memory']
   };
   const saved = store.get('settings', {});
@@ -196,7 +196,7 @@
       make(G) { return { custom: puzzleGame }; }
     },
     formes: {
-      name: 'Formes et couleurs', intro: 'Les formes et les couleurs !', icon: '🔷', color: '#1E9BD6', rounds: 5,
+      name: 'Formes', intro: 'Les formes !', icon: '🔷', color: '#1E9BD6', rounds: 5,
       make(G) {
         const L = lvl('formes');
         if (L > 0) {
@@ -389,7 +389,7 @@
     lire: { opts: ['Mots courts', 'Tous les mots'], def: 1 },
     vivant: { opts: ['Animaux et objets', '+ les plantes', '+ les pièges (nounours, robot, soleil…)'], def: 1 },
     cycle: { opts: ['3 étapes', '4 étapes'], def: 0 },
-    chiffres: { opts: ['1 à 5', '1 à 10', '1 à 10, tracé précis'], def: 0 },
+    chiffres: { opts: ['Tracé facile', 'Tracé précis'], def: 0 },
     prenom: { opts: ['Lettres seulement', 'Lettres + tracé facile', 'Lettres + tracé précis'], def: 1 },
     memory: { opts: ['3 paires', '4 paires', '5 paires', '6 paires', '8 paires', '10 paires'], key: 'memLevel' },
     puzzle: { opts: ['2 morceaux', '4 morceaux', '6 morceaux', '9 morceaux'], key: 'puzzleWins' },
@@ -407,7 +407,30 @@
   }
   const nOthers = id => [1, 2, 3][lvl(id)];
 
-  const ORDER = ['potager', 'compter', 'couleurs', 'lettres', 'animaux', 'memory', 'puzzle', 'lire', 'prenom', 'formes', 'tailles', 'ombres', 'coloriage', 'musique', 'fil', 'gouter', 'chiffres', 'vivant', 'cycle'];
+  // Jeux regroupés : chaque partie mélange les questions de plusieurs petits jeux (les « thèmes »).
+  // Les thèmes gardent leur propre difficulté et leur propre ligne dans le bilan.
+  function combo(name, intro, icon, color, rounds, plan, extra = {}) {
+    return Object.assign({
+      name, intro, icon, color, rounds, combo: true,
+      make(G) {
+        if (!G.plan) G.plan = plan();
+        const sub = G.plan[G.n % G.plan.length];
+        G.sub = sub; (G.subs = G.subs || new Set()).add(sub);
+        $('#game').classList.toggle('counting', sub === 'chiffre' || !!(GAMES[sub] && GAMES[sub].full));
+        if (sub === 'chiffre') return { custom: digitOne };
+        return GAMES[sub].make(G);
+      }
+    }, extra);
+  }
+  Object.assign(GAMES, {
+    nombres: combo('Les nombres', 'Les nombres !', '🔢', '#7A5BD6', 4, () => ['compter', 'chiffre', 'compter', 'chiffre'], { counting: true }),
+    monde_animaux: combo('Les animaux', 'Les animaux !', '🐾', '#3F9A43', 6, () => { const p = shuffle(['animaux', 'animaux', 'gouter', 'gouter', 'ombres', 'ombres']); return p; }),
+    nature: combo('La nature', 'La nature !', '🌱', '#2E8B57', 5, () => shuffle(['potager', 'potager', 'vivant', 'vivant', 'cycle'])),
+    formescouleurs: combo('Formes et couleurs', 'Les formes et les couleurs !', '🎨', '#1E9BD6', 5, () => shuffle(['couleurs', 'couleurs', 'formes', 'formes', 'formes'])),
+    mots: combo('Lettres et mots', 'Les lettres et les mots !', '🔤', '#1E63D6', 5, () => ['lettres', 'lettres', 'lire', 'lettres', 'lire'])
+  });
+  const ORDER = ['memory', 'puzzle', 'prenom', 'mots', 'nombres', 'formescouleurs', 'monde_animaux', 'nature', 'tailles', 'coloriage', 'musique', 'fil'];
+  const SUB_ORDER = ['lettres', 'lire', 'prenom', 'compter', 'chiffres', 'couleurs', 'formes', 'animaux', 'gouter', 'ombres', 'potager', 'vivant', 'cycle', 'tailles', 'memory', 'puzzle', 'fil', 'coloriage', 'musique'];
 
   function letterPool() {
     const base = settings.letters === 'all' ? LETTERS : LETTERS.filter(x => SIMPLE_LETTERS.includes(x.l));
@@ -429,6 +452,7 @@
     let n; let tries = 0;
     do { n = lo + rand(lvl - lo + 1); } while (G.usedN.has(n) && tries++ < 10);
     G.usedN.add(n);
+    G.lastCount = n;
     const it = pickNew(COUNT_ITEMS, G, x => x.pl);
 
     const stage = $('#stage'), ch = $('#choices');
@@ -1830,6 +1854,37 @@
     })();
   }
 
+  // Un nombre à tracer (dans « Les nombres ») : celui qu'on vient de compter
+  function digitOne(G, f) {
+    const n = G.lastCount || (1 + rand(9));
+    const stage = $('#stage');
+    const row = el('div', 'digit-row');
+    const wrap = el('div', 'trace');
+    const item = pick(DIGIT_ITEMS);
+    row.innerHTML = `<span class="digit-big">${n}</span><span class="digit-items">${`<i>${item}</i>`.repeat(Math.min(n, 30))}</span>`;
+    stage.append(row, wrap);
+    $('#caption').textContent = 'Suis le chemin avec ton doigt';
+    const word = n <= 10 ? DIGIT_WORDS[n] : String(n);
+    (async () => {
+      const parts = String(n).split('');
+      for (let k = 0; k < parts.length; k++) {
+        if (f !== G.flow) return;
+        await traceLetter(wrap, parts[k], k, f, {
+          strokes: DIGITS[parts[k]], precise: lvl('chiffres') === 1,
+          label: parts.length > 1 ? `${k === 0 ? 'D\'abord le ' : 'Puis le '}${DIGIT_WORDS[+parts[k]]}` : `Le chiffre ${word}`,
+          first: k === 0 ? `Maintenant, on écrit ${word} !` : ''
+        });
+      }
+      if (f !== G.flow) return;
+      sfx.good();
+      const dot = $$('.dot')[G.n]; if (dot) { dot.classList.add('on'); dot.textContent = '⭐'; }
+      statAnswer('chiffres', true);
+      await Promise.all([say(`Bravo ! Tu as écrit ${word} !`), sleep(900)]);
+      if (f !== G.flow) return;
+      G.n++; nextQ();
+    })();
+  }
+
   // ---------- Bilan pour les parents ----------
   const loadStats = () => store.get('stats', {});
   function statFor(all, id) { return all[id] || (all[id] = { plays: 0, q: 0, first: 0, conf: {}, last: '' }); }
@@ -1848,7 +1903,7 @@
     const box = $('#bilan'); if (!box) return;
     box.innerHTML = '';
     const all = loadStats();
-    const ids = ORDER.filter(id => all[id] && all[id].plays > 0).sort((a, b) => all[b].plays - all[a].plays);
+    const ids = SUB_ORDER.filter(id => all[id] && (all[id].plays > 0 || all[id].q > 0)).sort((a, b) => all[b].plays - all[a].plays);
     if (!ids.length) { box.append(el('p', 'muted', 'Pas encore de partie terminée.')); return; }
     const today = dayKey();
     ids.forEach(id => {
@@ -2108,7 +2163,7 @@
       G.lock = true;
       sfx.good();
       b.classList.add('yes');
-      statAnswer(G.id, !G.qMiss);
+      statAnswer(G.sub || G.id, !G.qMiss);
       if (q.onCorrect) await q.onCorrect(c);
       $$('.choice', $('#choices')).forEach(x => { if (x !== b) x.classList.add('dim'); });
       const dot = $$('.dot')[G.n];
@@ -2122,8 +2177,8 @@
       b.classList.add('no');
       G.qMiss = (G.qMiss || 0) + 1;
       const target = q.choices.find(x => x.correct);
-      if (q.confKey) statAnswer(G.id, false, q.confKey);
-      else if (target) statAnswer(G.id, false, `${target.label.replace(/^(le |la |l'|les )/, '')} → ${c.label.replace(/^(le |la |l'|les )/, '')}`);
+      if (q.confKey) statAnswer(G.sub || G.id, false, q.confKey);
+      else if (target) statAnswer(G.sub || G.id, false, `${target.label.replace(/^(le |la |l'|les )/, '')} → ${c.label.replace(/^(le |la |l'|les )/, '')}`);
       say(c.wrong).then(() => { if (q.afterWrong && f === G.flow && !G.lock) q.afterWrong(); });
     }
   }
@@ -2131,7 +2186,7 @@
   function repeat() { audio(); if (G && G.replay) G.replay(); else if (G && G.prompt) say(G.prompt); }
 
   function finish() {
-    statPlay(G.id);
+    if (G.subs) G.subs.forEach(id => statPlay(id === 'chiffre' ? 'chiffres' : id)); else statPlay(G.id);
     if (G.def.counting) store.set('countLevel', Math.min(settings.countMax, countLevel() + 2));
     if (G.id === 'memory') { const w = store.get('memLevel', 0); G.leveledUp = w < MEMORY_AUTO_MAX; if (G.leveledUp) store.set('memLevel', w + 1); }
     if (G.id === 'fil') { const w = store.get('mazeWins', 0); G.leveledUp = w < MAZE_LEVELS.length - 1; store.set('mazeWins', w + 1); }
@@ -2450,7 +2505,7 @@
     $('#set-memgroup').value = String(settings.memGroup);
     const box = $('#set-levels'); if (!box) return;
     box.innerHTML = '';
-    ORDER.filter(id => LEVEL_CFG[id]).forEach(id => {
+    SUB_ORDER.filter(id => LEVEL_CFG[id]).forEach(id => {
       const c = LEVEL_CFG[id];
       const row = el('label', 'row lvl-row');
       row.setAttribute('for', 'lvl-' + id);

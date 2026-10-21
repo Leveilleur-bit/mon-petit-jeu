@@ -7,25 +7,20 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 
 | Jeu | Ce que fait l'enfant |
 |---|---|
-| 🥕 Fruits et légumes | « Où est la carotte ? » : 3 images, il touche la bonne |
-| 🍓 Compter | Il touche chaque objet, la voix compte avec lui, puis il retrouve le chiffre. Commence jusqu'à 5 et monte de 2 à chaque partie (jusqu'à 30 maximum, réglable) |
-| 🎨 Couleurs | « Où est le rouge ? » : 11 couleurs |
-| 🔤 Lettres | « Où est la lettre B ? B comme ballon » : majuscules, lettres simples d'abord, celles du prénom en priorité |
-| 🐮 Animaux | « Écoute ! Qui fait ce bruit ? » : le cri est joué (cri fabriqué par l'appli, ou enregistré par les parents au micro) |
-| 👑 Memory | Choisir ses cartes (princesses, animaux, mer, fruits, véhicules, gourmandises ; un thème réussi est coché ✓ jusqu'à ce que tous soient faits), puis retrouver les paires : 3 paires au début, puis une de plus à chaque grille réussie (jusqu'à 6 ; 8 et 10 paires au choix). Options : trios au lieu de paires, coup d'œil sur toutes les cartes au début, temps d'affichage des cartes ratées. Bouton « Suivant » à la fin. Après 5 parties d'affilée (réglable), le memory se repose jusqu'à ce que 3 autres jeux soient finis |
-| 🧩 Puzzles | Choisir une image (château, licorne, tracteur…) et faire glisser les morceaux ; une image réussie est cochée ✓ et il faut en choisir une autre, jusqu'à les avoir toutes faites : 2 morceaux au début, puis 4, 6 et 9 à chaque puzzle réussi. Bouton « Suivant » : image suivante, un peu plus difficile |
-| 📖 Lire | Toucher les syllabes une par une (LA · PIN), la voix les lit, puis lit le mot entier. Syllabes en bleu et rouge, comme à l'école |
-| ✏️ Mon prénom | Remettre les lettres du prénom dans l'ordre, puis tracer chaque lettre au doigt en partant du point vert (la voix montre d'abord le chemin). Le prénom se règle dans le coin des parents. On peut y ajouter d'autres prénoms (famille, copains) : ils deviennent des niveaux, du plus court au plus long, avec une étoile une fois réussis et un bouton « Suivant » |
-| 🔷 Formes et couleurs | « Où est le triangle rouge ? » : rond, carré, triangle, rectangle, étoile, cœur, losange × 7 couleurs (niveau 1 : formes seules) |
-| 🐘 Grand, moyen, petit | Toucher le plus grand, le plus petit, puis le moyen (à tour de rôle) |
-| 🦒 Les ombres | Retrouver l'ombre de l'animal ou de l'objet montré |
-| 🖍️ Coloriage | 5 dessins (maison, fleur, poisson, papillon, voiture) : choisir une couleur, toucher une zone. Bouton vert pour finir, « Suivant » pour le dessin d'après |
-| 🎵 Musique | Xylophone libre, ou 3 chansons guidées (la barre à toucher brille) : Au clair de la lune, Frère Jacques, Ah vous dirai-je maman |
-| 🛤️ Le bon chemin | Un animal a faim, son goûter brille en bas. On fait glisser l'animal avec le doigt sur l'un des trois chemins ; s'il mène ailleurs, l'animal revient au départ et ce chemin se grise. Une petite main montre le geste. Chemins séparés au début, puis qui se croisent, puis de la même couleur |
-| 🔢 Les chiffres | Tracer les chiffres au doigt (1 à 5, puis 1 à 10), avec autant d'objets que le chiffre ; 3 chiffres par partie, on reprend où on s'était arrêté |
-| 🐰 Le goûter | « Le lapin a faim ! Qu'est-ce qu'il mange ? » : retrouver le repas de 12 animaux (carotte, banane, miel, noisette, fromage…) |
-| 🌱 Vivant ou pas ? | Ranger chaque image dans le panier « Vivant » ou « Pas vivant ». La voix explique pourquoi (« il mange, il respire et il grandit »). Niveaux : animaux et objets, + plantes, + pièges (nounours, robot, soleil, nuage) |
-| 🐣 Ça grandit ! | Remettre dans l'ordre les étapes de la vie : poule, papillon (chenille, chrysalide), fleur, grenouille (têtard), personne. 3 ou 4 étapes |
+| 👑 Memory | Choisir ses cartes (princesses, animaux, mer, fruits, véhicules, gourmandises ; un thème réussi est coché ✓ jusqu'à ce que tous soient faits), puis retrouver les paires (3 à 10, ou des trios). Options : coup d'œil au début, temps d'affichage des cartes ratées. Après 5 parties d'affilée (réglable), le memory se repose jusqu'à ce que 3 autres jeux soient finis |
+| 🧩 Puzzles | Choisir une image et faire glisser les morceaux (2, 4, 6 puis 9) ; une image réussie est cochée ✓ |
+| ✏️ Mon prénom | Remettre les lettres du prénom dans l'ordre, puis les tracer au doigt ; autres prénoms en niveaux |
+| 🔤 Lettres et mots | Mélange : « Où est la lettre B ? B comme ballon » et lecture des syllabes (LA · PIN) |
+| 🔢 Les nombres | Compter les objets, retrouver le chiffre, puis tracer ce nombre au doigt |
+| 🎨 Formes et couleurs | Mélange : « Où est le rouge ? » et « Où est le triangle rouge ? » |
+| 🐾 Les animaux | Mélange : qui fait ce bruit ? (cris), qu'est-ce qu'il mange ? (goûter), où est son ombre ? |
+| 🌱 La nature | Mélange : fruits et légumes, vivant ou pas vivant (deux paniers), remettre dans l'ordre comment ça grandit (poule, papillon, fleur, grenouille, personne) |
+| 🐘 Grand, moyen, petit | Toucher le plus grand, le plus petit, puis le moyen |
+| 🖍️ Coloriage | 5 dessins à colorier |
+| 🎵 Musique | Xylophone libre ou 3 chansons guidées |
+| 🛤️ Le bon chemin | Faire glisser l'animal sur le chemin qui mène à son goûter |
+
+Les jeux regroupés gardent un réglage de difficulté et une ligne de bilan pour chaque thème (Lettres, Lire, Compter, Chiffres, Couleurs, Formes, Cris, Goûter, Ombres, Fruits et légumes, Vivant ou pas, Ça grandit). Maximum prévu : 20 jeux.
 
 **Accueil** : 9 jeux tirés au hasard à chaque ouverture de l'appli, en priorité ceux qui n'étaient pas affichés la fois précédente (réglable : « Tous les jeux »). Les jeux marqués ⭐ dans le coin des parents sont toujours affichés (Memory par défaut).
 
@@ -62,7 +57,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v18` → `v19`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v19` → `v20`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique
