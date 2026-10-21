@@ -18,7 +18,7 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | 🐘 Grand, moyen, petit | Toucher le plus grand, le plus petit, puis le moyen |
 | 🖍️ Coloriage | 5 dessins à colorier |
 | 🎵 Musique | Xylophone libre ou 3 chansons guidées |
-| 🛤️ Le bon chemin | Faire glisser l'animal sur le chemin qui mène à son goûter |
+| 🌿 Le labyrinthe | Un jardin de haies : faire glisser l'animal dans les allées jusqu'à son goûter (impasses, un seul bon chemin). De 3 × 4 à 6 × 8 cases, la taille monte seule. Le haut-parleur fait briller les prochaines cases du bon chemin |
 
 Les jeux regroupés gardent un réglage de difficulté et une ligne de bilan pour chaque thème (Lettres, Lire, Compter, Chiffres, Couleurs, Formes, Cris, Goûter, Ombres, Fruits et légumes, Vivant ou pas, Ça grandit). Maximum prévu : 20 jeux.
 
@@ -57,7 +57,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v19` → `v20`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v20` → `v21`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique

@@ -306,7 +306,7 @@
       }
     },
     fil: {
-      name: 'Le bon chemin', intro: 'Le bon chemin !', icon: '🛤️', color: '#2E8B57', rounds: 1, full: true,
+      name: 'Le labyrinthe', intro: 'Le labyrinthe !', icon: '🌿', color: '#2E8B57', rounds: 1, full: true,
       make(G) { return { custom: mazeGame }; }
     },
     prenom: {
@@ -393,7 +393,7 @@
     prenom: { opts: ['Lettres seulement', 'Lettres + tracé facile', 'Lettres + tracé précis'], def: 1 },
     memory: { opts: ['3 paires', '4 paires', '5 paires', '6 paires', '8 paires', '10 paires'], key: 'memLevel' },
     puzzle: { opts: ['2 morceaux', '4 morceaux', '6 morceaux', '9 morceaux'], key: 'puzzleWins' },
-    fil: { opts: ['Très facile', 'Facile', 'Moyen', 'Difficile', 'Très difficile'], key: 'mazeWins' }
+    fil: { opts: ['3 × 4 cases', '4 × 5 cases', '5 × 6 cases', '5 × 7 cases', '6 × 8 cases'], key: 'labyWins' }
   };
   function lvl(id) {
     const c = LEVEL_CFG[id];
@@ -1526,44 +1526,55 @@
   ];
   const pron = n => /^la /.test(n) || ['la souris', 'la poule', 'la chenille', 'la vache'].includes(n) ? 'elle' : 'il';
 
-  // ---------- Le bon chemin : on fait glisser l'animal le long d'un chemin jusqu'à son goûter ----------
-  const DECOYS = [
-    { e: '🌲', n: 'au sapin' }, { e: '⛄', n: 'au bonhomme de neige' }, { e: '🍄', n: 'au champignon' },
-    { e: '🪨', n: 'au caillou' }, { e: '🌻', n: 'au tournesol' }, { e: '🏠', n: 'à la maison' }
-  ];
-  const FIL_COLORS = ['#E5484D', '#1E63D6', '#E8A400'];
-  const FIL_SAME = '#2E8B57';
-  const MAZE_LEVELS = [
-    { mids: 1, colors: true, cross: false }, { mids: 1, colors: true, cross: true }, { mids: 2, colors: true, cross: true },
-    { mids: 2, colors: false, cross: true }, { mids: 3, colors: false, cross: true }
-  ];
-  const mazeLevel = () => MAZE_LEVELS[Math.min(store.get('mazeWins', 0), MAZE_LEVELS.length - 1)];
+  // ---------- Le labyrinthe : un jardin de haies, l'animal en haut, son goûter en bas ----------
+  // Tailles (colonnes × lignes) ; le niveau monte seul à chaque labyrinthe réussi.
+  const LABY_LEVELS = [[3, 4], [4, 5], [5, 6], [5, 7], [6, 8]];
+  const labyLevel = () => Math.min(store.get('labyWins', 0), LABY_LEVELS.length - 1);
 
-  function catmull(pts, step) {
-    const P = [pts[0], ...pts, pts[pts.length - 1]], out = [];
-    for (let i = 1; i < P.length - 2; i++) {
-      const [p0, p1, p2, p3] = [P[i - 1], P[i], P[i + 1], P[i + 2]];
-      const len = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]), n = Math.max(2, Math.ceil(len / step));
-      for (let k = 0; k < n; k++) {
-        const t = k / n, t2 = t * t, t3 = t2 * t;
-        const f = (a, b, c, d) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
-        out.push([f(p0[0], p1[0], p2[0], p3[0]), f(p0[1], p1[1], p2[1], p3[1])]);
-      }
+  function makeMaze(C, R) {
+    // labyrinthe « parfait » (un seul chemin entre deux cases) par exploration en profondeur
+    const walls = Array.from({ length: R }, () => Array.from({ length: C }, () => ({ n: true, s: true, e: true, w: true })));
+    const seen = Array.from({ length: R }, () => Array(C).fill(false));
+    const stack = [[0, 0]]; seen[0][0] = true;
+    const D = [[0, -1, 'n', 's'], [0, 1, 's', 'n'], [1, 0, 'e', 'w'], [-1, 0, 'w', 'e']];
+    while (stack.length) {
+      const [x, y] = stack[stack.length - 1];
+      const nb = shuffle(D).filter(([dx, dy]) => { const a = x + dx, b = y + dy; return a >= 0 && b >= 0 && a < C && b < R && !seen[b][a]; });
+      if (!nb.length) { stack.pop(); continue; }
+      const [dx, dy, k, k2] = nb[0];
+      walls[y][x][k] = false; walls[y + dy][x + dx][k2] = false;
+      seen[y + dy][x + dx] = true; stack.push([x + dx, y + dy]);
     }
-    out.push(pts[pts.length - 1]);
-    const res = [out[0]];
-    let acc = 0;
-    for (let i = 1; i < out.length; i++) {
-      acc += Math.hypot(out[i][0] - out[i - 1][0], out[i][1] - out[i - 1][1]);
-      if (acc >= step) { res.push(out[i]); acc = 0; }
+    return walls;
+  }
+  function openBetween(walls, a, b) {
+    const [x, y] = a, [u, v] = b;
+    if (u === x + 1 && v === y) return !walls[y][x].e;
+    if (u === x - 1 && v === y) return !walls[y][x].w;
+    if (v === y + 1 && u === x) return !walls[y][x].s;
+    if (v === y - 1 && u === x) return !walls[y][x].n;
+    return false;
+  }
+  function solve(walls, C, R, a, b) {
+    const prev = new Map(), key = p => p[0] + ',' + p[1], q = [a];
+    prev.set(key(a), null);
+    while (q.length) {
+      const p = q.shift();
+      if (p[0] === b[0] && p[1] === b[1]) break;
+      [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => {
+        const n = [p[0] + dx, p[1] + dy];
+        if (n[0] < 0 || n[1] < 0 || n[0] >= C || n[1] >= R || prev.has(key(n)) || !openBetween(walls, p, n)) return;
+        prev.set(key(n), p); q.push(n);
+      });
     }
-    res.push(out[out.length - 1]);
-    return res;
+    const path = []; let p = b;
+    while (p) { path.unshift(p); p = prev.get(key(p)); }
+    return path;
   }
 
   function mazeGame(G, f) {
-    const L = mazeLevel();
-    const wrap = el('div', 'maze');
+    const [C, R] = LABY_LEVELS[labyLevel()];
+    const wrap = el('div', 'maze laby');
     $('#stage').append(wrap);
     const W = wrap.clientWidth, H = wrap.clientHeight;
     const cv = el('canvas');
@@ -1574,160 +1585,129 @@
     x.scale(dpr, dpr);
 
     const meal = pickNew(MEALS, G, m => m.n);
-    const ends = shuffle([{ e: meal.f, win: true, n: /^le /.test(meal.fn) ? 'au ' + meal.fn.slice(3) : 'à ' + meal.fn }, ...shuffle(DECOYS).slice(0, 2)]);
-    let order = [0, 1, 2];
-    if (L.cross) { order = shuffle(order); if (order.every((v, i) => v === i)) order.push(order.shift()); }
-    const S = [W / 2, Math.min(70, H * 0.11)];
-    const botY = H - Math.min(60, H * 0.09), y1 = botY - 40;
-    const ex = [W * 0.17, W * 0.5, W * 0.83];
-    const fan = [-0.24, 0, 0.24];
-    const paths = [0, 1, 2].map(i => {
-      const way = [S, [W / 2 + fan[i] * W, S[1] + Math.min(80, H * 0.12)]];
-      const top = way[1][1];
-      for (let k = 1; k <= L.mids; k++) {
-        const yy = top + (y1 - top) * (k / (L.mids + 1)) + (Math.random() - 0.5) * (y1 - top) / (L.mids + 1) * 0.5;
-        const xx = L.cross ? W * (0.1 + Math.random() * 0.8) : (way[1][0] * (1 - k / (L.mids + 1)) + ex[order[i]] * (k / (L.mids + 1))) + (Math.random() - 0.5) * W * 0.1;
-        way.push([xx, yy]);
-      }
-      way.push([ex[order[i]], y1]);
-      return { end: ends[order[i]], pts: catmull(way, 4), color: L.colors ? FIL_COLORS[i] : FIL_SAME, done: false };
-    });
-    const lw = Math.max(12, Math.min(18, W / 24));
-    const tol = Math.max(34, lw * 2.6);
-    let act = null, p = 0, pos = S, dragging = false, finished = false, busy = false, hand = null, lastTouch = performance.now();
+    const walls = makeMaze(C, R);
+    const start = [rand(C), 0], goal = [rand(C), R - 1];
+    walls[0][start[0]].n = false; walls[R - 1][goal[0]].s = false;   // l'entrée en haut, la sortie en bas
+    const sol = solve(walls, C, R, start, goal);
+    const pad = 14, top = 30, bot = 34;
+    const cs = Math.floor(Math.min((W - 2 * pad) / C, (H - top - bot) / R));
+    const ox = (W - cs * C) / 2, oy = top + (H - top - bot - cs * R) / 2;
+    const cx = c => ox + (c + 0.5) * cs, cy = r => oy + (r + 0.5) * cs;
+    let cur = start, trail = [start], finished = false, busy = false, dragging = false, hint = null, warned = new Set();
     const fontE = s => `${s}px "Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif`;
-    const poly = pts => { x.beginPath(); x.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) x.lineTo(pts[i][0], pts[i][1]); };
 
     function draw() {
       x.clearRect(0, 0, W, H);
-      x.lineCap = 'round'; x.lineJoin = 'round';
-      // les chemins : une route claire avec une bande de couleur
-      paths.forEach(P => {
-        x.globalAlpha = P.done ? 0.25 : 1;
-        x.strokeStyle = '#E9EEF6'; x.lineWidth = lw * 2; poly(P.pts); x.stroke();
-        x.strokeStyle = P.color; x.lineWidth = lw; poly(P.pts); x.stroke();
-      });
-      x.globalAlpha = 1;
-      if (act && p > 0) { x.strokeStyle = 'rgba(255,255,255,.9)'; x.lineWidth = lw * 0.4; x.setLineDash([2, 10]); poly(act.pts.slice(0, p + 1)); x.stroke(); x.setLineDash([]); }
-      x.textAlign = 'center'; x.textBaseline = 'middle';
-      // arrivées : le goûter brille, les autres sont plus petits
-      ends.forEach((E, k) => {
-        const P = paths.find(q => q.end === E);
-        if (E.win) {
-          const t = performance.now() / 500;
-          x.fillStyle = `rgba(255,200,61,${0.35 + 0.15 * Math.sin(t)})`;
-          x.beginPath(); x.arc(ex[k], botY, 38, 0, Math.PI * 2); x.fill();
-          x.fillStyle = '#000'; x.font = fontE(52); x.fillText(E.e, ex[k], botY + 4);
-        } else {
-          x.globalAlpha = P && P.done ? 0.35 : 0.9;
-          x.fillStyle = '#000'; x.font = fontE(40); x.fillText(E.e, ex[k], botY + 4);
-          x.globalAlpha = 1;
-        }
-      });
-      // l'animal, avec un cercle qui invite à le toucher
-      if (!finished && !dragging) {
-        const t = performance.now() / 400;
-        x.strokeStyle = 'rgba(63,154,67,.85)'; x.lineWidth = 5;
-        x.beginPath(); x.arc(pos[0], pos[1], 34 + 4 * Math.sin(t), 0, Math.PI * 2); x.stroke();
+      // pelouse et allées
+      x.fillStyle = '#E9F5DF'; x.fillRect(0, 0, W, H);
+      x.fillStyle = '#F7EBCF';
+      x.fillRect(ox, oy, cs * C, cs * R);
+      x.fillRect(cx(start[0]) - cs / 2, oy - top, cs, top);
+      x.fillRect(cx(goal[0]) - cs / 2, oy + cs * R, cs, bot);
+      // le chemin déjà parcouru
+      if (trail.length > 1) {
+        x.strokeStyle = 'rgba(239,79,108,.55)'; x.lineWidth = cs * 0.22; x.lineCap = 'round'; x.lineJoin = 'round';
+        x.setLineDash([cs * 0.05, cs * 0.3]);
+        x.beginPath(); trail.forEach(([c, r], i) => i ? x.lineTo(cx(c), cy(r)) : x.moveTo(cx(c), cy(r))); x.stroke();
+        x.setLineDash([]);
       }
-      x.fillStyle = '#000'; x.font = fontE(dragging ? 60 : 54); x.fillText(meal.a, pos[0], pos[1]);
-      if (hand) { x.font = fontE(44); x.fillText('👆', hand[0] + 14, hand[1] + 30); }
+      // indice : quelques étoiles sur le bon chemin
+      if (hint) { x.font = fontE(cs * 0.32); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#000'; hint.forEach(([c, r]) => x.fillText('✨', cx(c), cy(r))); }
+      // les haies
+      const hw = Math.max(6, cs * 0.16);
+      x.strokeStyle = '#3F9A43'; x.lineWidth = hw; x.lineCap = 'round';
+      x.beginPath();
+      for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+        const w = walls[r][c], X = ox + c * cs, Y = oy + r * cs;
+        if (w.n) { x.moveTo(X, Y); x.lineTo(X + cs, Y); }
+        if (w.w) { x.moveTo(X, Y); x.lineTo(X, Y + cs); }
+        if (c === C - 1 && w.e) { x.moveTo(X + cs, Y); x.lineTo(X + cs, Y + cs); }
+        if (r === R - 1 && w.s) { x.moveTo(X, Y + cs); x.lineTo(X + cs, Y + cs); }
+      }
+      x.stroke();
+      x.strokeStyle = 'rgba(255,255,255,.25)'; x.lineWidth = hw * 0.35; x.stroke();
+      // le goûter qui brille, l'animal
+      x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#000';
+      const t = performance.now() / 500;
+      x.fillStyle = `rgba(255,200,61,${0.35 + 0.15 * Math.sin(t)})`;
+      x.beginPath(); x.arc(cx(goal[0]), oy + cs * R + bot / 2 - 2, Math.min(cs * 0.45, 30), 0, Math.PI * 2); x.fill();
+      x.fillStyle = '#000';
+      x.font = fontE(Math.min(cs * 0.6, 44)); x.fillText(meal.f, cx(goal[0]), oy + cs * R + bot / 2);
+      if (!finished && !dragging && trail.length === 1) {
+        x.strokeStyle = 'rgba(63,154,67,.9)'; x.lineWidth = 4;
+        x.beginPath(); x.arc(cx(cur[0]), cy(cur[1]), cs * 0.42 + 3 * Math.sin(t * 1.3), 0, Math.PI * 2); x.stroke();
+      }
+      x.font = fontE(Math.min(cs * 0.66, 56)); x.fillText(meal.a, cx(cur[0]), cy(cur[1]) + 2);
     }
     let raf = 0;
     const loop = () => { if (f !== G.flow) return; draw(); raf = requestAnimationFrame(loop); };
     loop();
 
-    // petite main qui montre le geste, au début et quand rien ne se passe
-    function showHand() {
-      if (finished || dragging || busy) return;
-      const P = pick(paths.filter(q => !q.done));
-      let k = 0;
-      const pts = act && act === P ? P.pts.slice(p) : P.pts;
-      const step = () => {
-        if (f !== G.flow || dragging || finished) { hand = null; return; }
-        hand = pts[Math.min(k, pts.length - 1)];
-        k += 3;
-        if (k < Math.min(pts.length, 70)) requestAnimationFrame(step); else setTimeout(() => { hand = null; }, 300);
-      };
-      step();
+    const cellAt = (px, py) => [Math.floor((px - ox) / cs), Math.floor((py - oy) / cs)];
+    const same = (a, b) => a[0] === b[0] && a[1] === b[1];
+    function stepToward(target) {
+      // avance case par case vers le doigt, sans traverser les haies
+      for (let i = 0; i < 12; i++) {
+        if (same(cur, target)) return;
+        const dx = Math.sign(target[0] - cur[0]), dy = Math.sign(target[1] - cur[1]);
+        const tries = Math.abs(target[0] - cur[0]) >= Math.abs(target[1] - cur[1]) ? [[dx, 0], [0, dy]] : [[0, dy], [dx, 0]];
+        let moved = false;
+        for (const [ax, ay] of tries) {
+          if (!ax && !ay) continue;
+          const n = [cur[0] + ax, cur[1] + ay];
+          if (n[0] < 0 || n[1] < 0 || n[0] >= C || n[1] >= R || !openBetween(walls, cur, n)) continue;
+          move(n); moved = true; break;
+        }
+        if (!moved || finished) return;
+      }
     }
-    const idle = setInterval(() => {
-      if (f !== G.flow) { clearInterval(idle); return; }
-      if (!dragging && !finished && !busy && performance.now() - lastTouch > 7000) { lastTouch = performance.now(); showHand(); }
-    }, 1000);
-
+    function move(n) {
+      if (trail.length > 1 && same(trail[trail.length - 2], n)) trail.pop(); else trail.push(n);
+      cur = n;
+      note(520 + trail.length * 18, 0, 0.05, 'sine', 0.06);
+      if (same(cur, goal)) { win(); return; }
+      const w = walls[cur[1]][cur[0]];
+      const exits = ['n', 's', 'e', 'w'].filter(k => !w[k]).length;
+      const key = cur.join(',');
+      if (exits === 1 && !warned.has(key)) { warned.add(key); say("Oh, c'est bouché ! Fais demi-tour."); }
+    }
     const ptr = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
     cv.addEventListener('pointerdown', e => {
       if (finished || busy || f !== G.flow) return;
       e.preventDefault(); audio();
-      lastTouch = performance.now();
-      const q = ptr(e);
-      if (Math.hypot(q[0] - pos[0], q[1] - pos[1]) < 70) {
-        try { cv.setPointerCapture(e.pointerId); } catch (err) { /* rien */ }
-        dragging = true; hand = null;
-      } else say(`Pose ton doigt sur ${meal.n}, et fais-${pron(meal.n) === 'elle' ? 'la' : 'le'} glisser sur un chemin !`);
+      try { cv.setPointerCapture(e.pointerId); } catch (err) { /* rien */ }
+      dragging = true; hint = null;
+      const [px, py] = ptr(e);
+      stepToward(cellAt(px, py));
     });
     cv.addEventListener('pointermove', e => {
-      if (!dragging) return;
-      lastTouch = performance.now();
-      const q = ptr(e);
-      if (!act) {
-        // au départ : on choisit le chemin le plus proche du doigt
-        let best = null, bd = tol, bi = 0;
-        paths.forEach(P => { if (P.done) return; for (let i = 3; i < Math.min(P.pts.length, 40); i++) { const d = Math.hypot(P.pts[i][0] - q[0], P.pts[i][1] - q[1]); if (d < bd) { bd = d; best = P; bi = i; } } });
-        if (best) { act = best; p = bi; pos = act.pts[p]; }
-        return;
-      }
-      let bi = -1, bd = tol;
-      for (let i = Math.max(0, p - 25); i <= Math.min(act.pts.length - 1, p + 25); i++) {
-        const d = Math.hypot(act.pts[i][0] - q[0], act.pts[i][1] - q[1]);
-        if (d < bd) { bd = d; bi = i; }
-      }
-      if (bi < 0) return;
-      if (Math.floor(bi / 12) > Math.floor(p / 12)) note(480 + bi * 2.5, 0, 0.05, 'sine', 0.05);
-      p = bi; pos = act.pts[p];
-      if (p < 3) { act = null; p = 0; pos = S; return; }   // revenu au départ : on peut changer de chemin
-      if (p >= act.pts.length - 4) arrive();
+      if (!dragging || finished) return;
+      const [px, py] = ptr(e);
+      const t = cellAt(px, py);
+      if (t[0] >= 0 && t[1] >= 0 && t[0] < C && t[1] < R) stepToward(t);
     });
     const up = () => { dragging = false; };
     cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
 
-    function slide(pts, dur) {
-      return new Promise(res => {
-        const t0 = performance.now();
-        const step = t => {
-          const k = Math.max(0, Math.min(1, (t - t0) / dur));
-          pos = pts[Math.floor(k * (pts.length - 1))];
-          if (k < 1 && f === G.flow) requestAnimationFrame(step); else res();
-        };
-        requestAnimationFrame(step);
-      });
+    async function win() {
+      finished = true; dragging = false; busy = true;
+      sfx.good(); confetti();
+      await say(`Miam ! ${cap(meal.n)} a trouvé ${meal.fn} ! Bravo !`);
+      cancelAnimationFrame(raf);
+      if (f === G.flow) { G.n = G.total; nextQ(); }
     }
-    async function arrive() {
-      dragging = false; busy = true;
-      const P = act;
-      pos = P.pts[P.pts.length - 1];
-      if (P.end.win) {
-        finished = true;
-        sfx.good(); confetti();
-        await say(`Miam ! ${cap(meal.n)} a trouvé ${meal.fn} ! Bravo !`);
-        cancelAnimationFrame(raf); clearInterval(idle);
-        if (f === G.flow) { G.n = G.total; nextQ(); }
-        return;
-      }
-      sfx.soft();
-      await say(`Oh ! Ce chemin va ${P.end.n}. On retourne au départ, et on essaie un autre chemin !`);
-      if (f !== G.flow) return;
-      await slide(P.pts.slice().reverse(), 1200);
-      P.done = true; act = null; p = 0; pos = S; busy = false;
-      lastTouch = performance.now() - 5000;
+    function showHint() {
+      // montre les 3 prochaines cases du bon chemin depuis la dernière case juste
+      let i = 0;
+      for (let k = trail.length - 1; k >= 0; k--) { const j = sol.findIndex(p => same(p, trail[k])); if (j >= 0) { i = j; break; } }
+      hint = sol.slice(i + 1, i + 4);
+      setTimeout(() => { hint = null; }, 2500);
     }
-
-    if (location.hash === '#test') window.__maze = { paths, S, rect: () => cv.getBoundingClientRect() };
-    $('#caption').textContent = `Fais glisser ${meal.n} jusqu'${ends.find(E => E.win).n}`;
-    G.prompt = `${cap(meal.n)} a faim ! ${cap(meal.fn)} est en bas. Pose ton doigt sur ${meal.n}, et fais-${pron(meal.n) === 'elle' ? 'la' : 'le'} glisser sur le bon chemin !`;
-    G.replay = () => { audio(); say(G.prompt); showHand(); };
-    (async () => { await say(G.prompt); if (f === G.flow) showHand(); })();
+    if (location.hash === '#test') window.__laby = { sol, start, goal, cs, ox, oy, rect: () => cv.getBoundingClientRect() };
+    $('#caption').textContent = `Emmène ${meal.n} jusqu'${/^le /.test(meal.fn) ? 'au ' + meal.fn.slice(3) : 'à ' + meal.fn}`;
+    G.prompt = `${cap(meal.n)} a faim ! ${cap(meal.fn)} est tout en bas. Fais glisser ${meal.n} dans les allées du labyrinthe !`;
+    G.replay = () => { audio(); say('Regarde les petites étoiles : elles montrent le chemin !'); showHint(); };
+    say(G.prompt);
   }
 
   // ---------- Cris d'animaux : fabriqués par l'appli, ou enregistrés par les parents ----------
@@ -2189,7 +2169,7 @@
     if (G.subs) G.subs.forEach(id => statPlay(id === 'chiffre' ? 'chiffres' : id)); else statPlay(G.id);
     if (G.def.counting) store.set('countLevel', Math.min(settings.countMax, countLevel() + 2));
     if (G.id === 'memory') { const w = store.get('memLevel', 0); G.leveledUp = w < MEMORY_AUTO_MAX; if (G.leveledUp) store.set('memLevel', w + 1); }
-    if (G.id === 'fil') { const w = store.get('mazeWins', 0); G.leveledUp = w < MAZE_LEVELS.length - 1; store.set('mazeWins', w + 1); }
+    if (G.id === 'fil') { const w = store.get('labyWins', 0); G.leveledUp = w < LABY_LEVELS.length - 1; store.set('labyWins', Math.min(w + 1, LABY_LEVELS.length - 1)); }
     G.memLocked = false;
     if (G.id === 'memory' && settings.memLimit > 0) {
       const n = store.get('memPlays', 0) + 1;
