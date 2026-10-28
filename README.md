@@ -8,15 +8,15 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | Jeu | Ce que fait l'enfant |
 |---|---|
 | 👑 Memory | Choisir ses cartes (princesses, animaux, mer, fruits, véhicules, gourmandises ; un thème réussi est coché ✓ jusqu'à ce que tous soient faits), puis retrouver les paires (3 à 10, ou des trios). Options : coup d'œil au début, temps d'affichage des cartes ratées. Après 5 parties d'affilée (réglable), le memory se repose jusqu'à ce que 3 autres jeux soient finis |
-| 🧩 Puzzles | Choisir une image et faire glisser les morceaux (2, 4, 6 puis 9) ; une image réussie est cochée ✓ |
+| 🧩 Puzzles | Choisir parmi 18 images et faire glisser les morceaux (2, 4, 6, 9, 12, puis 16 au choix) ; une image réussie est cochée ✓ |
 | ✏️ Mon prénom | Remettre les lettres du prénom dans l'ordre, puis les tracer au doigt ; autres prénoms en niveaux |
 | 🔤 Lettres et mots | Mélange : « Où est la lettre B ? B comme ballon » et lecture des syllabes (LA · PIN) |
 | 🔢 Les nombres | Compter les objets, retrouver le chiffre, puis tracer ce nombre au doigt |
-| 🎨 Formes et couleurs | Mélange : « Où est le rouge ? » et « Où est le triangle rouge ? » |
+| 🎨 Formes et couleurs | Mélange : « Où est le rouge ? », « Où est le triangle rouge ? » et suites logiques (🔴🔵🔴🔵❓ : A B A B, puis A A B, puis A B C) |
 | 🐾 Les animaux | Mélange : qui fait ce bruit ? (cris), qu'est-ce qu'il mange ? (goûter), où est son ombre ? |
 | 🌱 La nature | Mélange : fruits et légumes, vivant ou pas vivant (deux paniers), remettre dans l'ordre comment ça grandit (poule, papillon, fleur, grenouille, personne) |
 | 🐘 Grand, moyen, petit | Toucher le plus grand, le plus petit, puis le moyen |
-| 🖍️ Coloriage | 5 dessins à colorier |
+| 🖍️ Coloriage | 15 dessins à colorier (maison, fleur, poisson, papillon, voiture, licorne, château, fusée, chat, arc-en-ciel, bateau, glace, gâteau, princesse, escargot), cochés ✓ une fois faits, et dessin libre au doigt avec gomme |
 | 🎵 Musique | Xylophone libre ou 3 chansons guidées |
 | 🌿 Le labyrinthe | Un jardin de haies : faire glisser l'animal dans les allées jusqu'à son goûter (impasses, un seul bon chemin). De 3 × 4 à 6 × 8 cases, la taille monte seule. Le haut-parleur fait briller les prochaines cases du bon chemin |
 
@@ -59,7 +59,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v21` → `v22`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v22` → `v23`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique

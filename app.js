@@ -280,6 +280,10 @@
       name: 'Ça grandit !', intro: 'Comment ça grandit ?', icon: '🐣', color: '#E8A400', rounds: 3,
       make(G) { return { custom: cycleGame }; }
     },
+    suites: {
+      name: 'Suites logiques', intro: 'Les suites !', icon: '🔁', color: '#1E9BD6', rounds: 5,
+      make(G) { return suiteQuestion(G); }
+    },
     chiffres: {
       name: 'Les chiffres', intro: 'On écrit les chiffres !', icon: '🔢', color: '#7A5BD6', rounds: 1, full: true,
       make(G) { return { custom: digitGame }; }
@@ -390,9 +394,10 @@
     vivant: { opts: ['Animaux et objets', '+ les plantes', '+ les pièges (nounours, robot, soleil…)'], def: 1 },
     cycle: { opts: ['3 étapes', '4 étapes'], def: 0 },
     chiffres: { opts: ['Tracé facile', 'Tracé précis'], def: 0 },
+    suites: { opts: ['A B A B', 'A A B, A B B', 'A B C, A A B B'], def: 0 },
     prenom: { opts: ['Lettres seulement', 'Lettres + tracé facile', 'Lettres + tracé précis'], def: 1 },
     memory: { opts: ['3 paires', '4 paires', '5 paires', '6 paires', '8 paires', '10 paires'], key: 'memLevel' },
-    puzzle: { opts: ['2 morceaux', '4 morceaux', '6 morceaux', '9 morceaux'], key: 'puzzleWins' },
+    puzzle: { opts: ['2 morceaux', '4 morceaux', '6 morceaux', '9 morceaux', '12 morceaux', '16 morceaux'], key: 'puzzleLevel' },
     fil: { opts: ['3 × 4 cases', '4 × 5 cases', '5 × 6 cases', '5 × 7 cases', '6 × 8 cases'], key: 'labyWins' }
   };
   function lvl(id) {
@@ -426,11 +431,11 @@
     nombres: combo('Les nombres', 'Les nombres !', '🔢', '#7A5BD6', 4, () => ['compter', 'chiffre', 'compter', 'chiffre'], { counting: true }),
     monde_animaux: combo('Les animaux', 'Les animaux !', '🐾', '#3F9A43', 6, () => { const p = shuffle(['animaux', 'animaux', 'gouter', 'gouter', 'ombres', 'ombres']); return p; }),
     nature: combo('La nature', 'La nature !', '🌱', '#2E8B57', 5, () => shuffle(['potager', 'potager', 'vivant', 'vivant', 'cycle'])),
-    formescouleurs: combo('Formes et couleurs', 'Les formes et les couleurs !', '🎨', '#1E9BD6', 5, () => shuffle(['couleurs', 'couleurs', 'formes', 'formes', 'formes'])),
+    formescouleurs: combo('Formes et couleurs', 'Les formes et les couleurs !', '🎨', '#1E9BD6', 5, () => shuffle(['couleurs', 'formes', 'formes', 'suites', 'suites'])),
     mots: combo('Lettres et mots', 'Les lettres et les mots !', '🔤', '#1E63D6', 5, () => ['lettres', 'lettres', 'lire', 'lettres', 'lire'])
   });
   const ORDER = ['memory', 'puzzle', 'prenom', 'mots', 'nombres', 'formescouleurs', 'monde_animaux', 'nature', 'tailles', 'coloriage', 'musique', 'fil'];
-  const SUB_ORDER = ['lettres', 'lire', 'prenom', 'compter', 'chiffres', 'couleurs', 'formes', 'animaux', 'gouter', 'ombres', 'potager', 'vivant', 'cycle', 'tailles', 'memory', 'puzzle', 'fil', 'coloriage', 'musique'];
+  const SUB_ORDER = ['lettres', 'lire', 'prenom', 'compter', 'chiffres', 'couleurs', 'formes', 'suites', 'animaux', 'gouter', 'ombres', 'potager', 'vivant', 'cycle', 'tailles', 'memory', 'puzzle', 'fil', 'coloriage', 'musique'];
 
   function letterPool() {
     const base = settings.letters === 'all' ? LETTERS : LETTERS.filter(x => SIMPLE_LETTERS.includes(x.l));
@@ -552,11 +557,11 @@
   // et ne peut pas être repris tant que tout n'a pas été fait.
   function picker(G, f, items, doneKey, keyOf, prompt, caption, onPick) {
     let done = store.get(doneKey, []);
-    if (items.every(it => done.includes(keyOf(it)))) { done = []; store.set(doneKey, []); }
+    if (items.filter(it => !it.free).every(it => done.includes(keyOf(it)))) { done = []; store.set(doneKey, []); }
     const stage = $('#stage');
-    const grid = el('div', 'pzpick');
+    const grid = el('div', 'pzpick' + (items.length > 9 ? ' many' : ''));
     items.forEach((it, i) => {
-      const isDone = done.includes(keyOf(it));
+      const isDone = !it.free && done.includes(keyOf(it));
       const b = el('button', 'pzthumb' + (isDone ? ' done' : ''), it.e + (isDone ? '<span class="pz-ok">✓</span>' : ''));
       b.style.setProperty('--bg', it.bg);
       b.style.animationDelay = (i * 50) + 'ms';
@@ -648,10 +653,18 @@
     { e: '🏰', n: 'le château', bg: '#FFD6E8' }, { e: '🦄', n: 'la licorne', bg: '#E6DBFF' },
     { e: '🚜', n: 'le tracteur', bg: '#D8F3D0' }, { e: '🐱', n: 'le chat', bg: '#FFE9C7' },
     { e: '🦋', n: 'le papillon', bg: '#D7EEFF' }, { e: '🚀', n: 'la fusée', bg: '#DDE3FF' },
-    { e: '🐢', n: 'la tortue', bg: '#D2F2EA' }, { e: '🍓', n: 'la fraise', bg: '#FFE0E0' }
+    { e: '🐢', n: 'la tortue', bg: '#D2F2EA' }, { e: '🍓', n: 'la fraise', bg: '#FFE0E0' },
+    { e: '👸', n: 'la princesse', bg: '#FFE0F0' }, { e: '🐶', n: 'le chien', bg: '#FFF1CC' },
+    { e: '🦁', n: 'le lion', bg: '#FFE7C2' }, { e: '🐬', n: 'le dauphin', bg: '#D2EEFF' },
+    { e: '🚒', n: 'le camion de pompiers', bg: '#FFE0DD' }, { e: '🌈', n: "l'arc-en-ciel", bg: '#E2F4FF' },
+    { e: '🧁', n: 'le petit gâteau', bg: '#FFE8F2' }, { e: '🦕', n: 'le dinosaure', bg: '#DFF5D8' },
+    { e: '🐼', n: 'le panda', bg: '#EDEFF5' }, { e: '🧜‍♀️', n: 'la sirène', bg: '#D7F3F0' }
   ];
-  const PUZZLE_LEVELS = [[1, 2], [2, 2], [3, 2], [3, 3]];
-  const puzzleGrid = () => PUZZLE_LEVELS[Math.min(store.get('puzzleWins', 0), PUZZLE_LEVELS.length - 1)];
+  // 2 à 16 morceaux ; le niveau monte seul jusqu'à 12, 16 se choisit dans le coin des parents
+  const PUZZLE_LEVELS = [[1, 2], [2, 2], [3, 2], [3, 3], [4, 3], [4, 4]];
+  const PUZZLE_AUTO_MAX = 4;
+  if (store.get('puzzleLevel', null) == null) store.set('puzzleLevel', Math.min(store.get('puzzleWins', 0), 3));
+  const puzzleGrid = () => PUZZLE_LEVELS[Math.min(store.get('puzzleLevel', 0), PUZZLE_LEVELS.length - 1)];
   function puzzleGame(G, f) {
     picker(G, f, PUZZLES, 'puzzleDone', p => p.n, 'Choisis ton puzzle !', 'Choisis ton puzzle', p => buildPuzzle(G, f, p));
   }
@@ -675,7 +688,7 @@
     const box = el('div', 'pz');
     $('#stage').append(box);
     const W = box.clientWidth, H = box.clientHeight;
-    const B = Math.floor(Math.min(W, H * 0.56, 380));
+    const B = Math.floor(Math.min(W, H * (n > 9 ? 0.5 : 0.56), 380));
     const pw = B / cols, ph = B / rows;
     const bx = Math.round((W - B) / 2), by = 0;
     const url = puzzleImage(p, 600);
@@ -692,7 +705,7 @@
 
     // le plateau du bas : les morceaux mélangés, réduits si besoin
     const trayTop = B + 18, trayH = Math.max(60, H - trayTop);
-    const perLine = n <= 3 ? n : Math.ceil(n / 2), lines = n <= 3 ? 1 : 2, gap = 12;
+    const lines = n <= 3 ? 1 : n <= 9 ? 2 : n <= 12 ? 3 : 4, perLine = Math.ceil(n / lines), gap = n > 9 ? 8 : 12;
     const s = Math.min(1, (W - gap * (perLine - 1)) / (perLine * pw), (trayH - gap * (lines - 1)) / (lines * ph));
     const offY = Math.max(0, (trayH - lines * ph * s - gap * (lines - 1)) / 2);
     const order = shuffle([...Array(n).keys()]);
@@ -709,7 +722,7 @@
         animationDelay: (i * 80) + 'ms'
       });
       const k = order[i], line = Math.floor(k / perLine), col = k % perLine;
-      const inLine = line === 0 ? Math.min(perLine, n) : n - perLine;
+      const inLine = Math.min(perLine, n - line * perLine);
       const lineW = inLine * pw * s + gap * (inLine - 1);
       const P = {
         el: pc, done: false, misses: 0,
@@ -1214,10 +1227,7 @@
       <circle class="zone" cx="95" cy="220" r="31"/><circle class="zone" cx="220" cy="220" r="31"/>
       <circle class="zone" cx="95" cy="220" r="12"/><circle class="zone" cx="220" cy="220" r="12"/>` }
   ];
-  function colorGame(G, f) {
-    const i = G.opts.next ? (store.get('lastDrawing', -1) + 1) % DRAWINGS.length : rand(DRAWINGS.length);
-    store.set('lastDrawing', i);
-    const d = DRAWINGS[i];
+  function colorDrawing(G, f, d) {
     const stage = $('#stage');
     const card = el('div', 'paint-card', `<svg viewBox="0 0 300 300" class="paint-svg" aria-label="Dessin : ${d.n}">${d.svg}</svg>`);
     const doneBtn = el('button', 'paint-done', '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M5 12.5l4.5 4.5L19 7.5"/></svg>');
@@ -1240,6 +1250,7 @@
     doneBtn.onclick = async () => {
       if (f !== G.flow) return;
       audio(); sfx.good();
+      markDone('colorDone', d.n);
       await say(`Bravo ! Il est trop beau, ton dessin !`);
       if (f === G.flow) { G.n = G.total; nextQ(); }
     };
@@ -2044,7 +2055,7 @@
   const ghHeaders = () => ({ Authorization: 'token ' + ghToken(), Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' });
   const b64 = str => btoa(unescape(encodeURIComponent(str)));
   const unb64 = str => decodeURIComponent(escape(atob(str.replace(/\n/g, ''))));
-  const STORE_KEYS = ['memLevel', 'puzzleWins', 'labyWins', 'countLevel', 'digitNext', 'memPlays', 'memLock', 'puzzleDone', 'memThemesDone', 'namesDone', 'stickers'];
+  const STORE_KEYS = ['memLevel', 'puzzleLevel', 'colorDone', 'puzzleWins', 'labyWins', 'countLevel', 'digitNext', 'memPlays', 'memLock', 'puzzleDone', 'memThemesDone', 'namesDone', 'stickers'];
   const SETTING_KEYS = ['levels', 'memPeek', 'memDelay', 'memGroup', 'memLimit', 'countMax', 'letters', 'timeLimit', 'homeMode', 'favs', 'games', 'names', 'volume', 'rate', 'effects'];
 
   function ghStatus(txt, ok) { const e = $('#gh-status'); if (e) { e.textContent = txt; e.className = 'muted ' + (ok === true ? 'ok' : ok === false ? 'ko' : ''); } }
@@ -2165,6 +2176,210 @@
   }
   window.addEventListener('online', () => scheduleSync(3000));
   document.addEventListener('visibilitychange', () => { if (document.hidden && ghToken()) syncNow(false); });
+
+  // Nouveaux dessins à colorier (300 × 300, une zone = une forme à remplir)
+  DRAWINGS.push(
+    { n: 'la licorne', svg: `
+      <rect class="zone" x="0" y="262" width="300" height="38"/>
+      <polygon class="zone" points="48,30 55,48 74,48 59,59 65,77 48,66 31,77 37,59 22,48 41,48"/>
+      <circle class="zone" cx="62" cy="168" r="16"/><circle class="zone" cx="52" cy="194" r="14"/>
+      <rect class="zone" x="92" y="198" width="20" height="66" rx="6"/><rect class="zone" x="124" y="204" width="20" height="60" rx="6"/>
+      <rect class="zone" x="170" y="204" width="20" height="60" rx="6"/><rect class="zone" x="202" y="198" width="20" height="66" rx="6"/>
+      <ellipse class="zone" cx="155" cy="180" rx="82" ry="44"/>
+      <polygon class="zone" points="196,166 222,92 258,104 236,180"/>
+      <ellipse class="zone" cx="252" cy="98" rx="38" ry="26" transform="rotate(18 252 98)"/>
+      <polygon class="zone" points="258,74 286,18 274,80"/>
+      <circle class="zone" cx="216" cy="98" r="14"/><circle class="zone" cx="206" cy="124" r="14"/><circle class="zone" cx="200" cy="150" r="13"/>
+      <circle class="zone" cx="262" cy="94" r="5"/>` },
+    { n: 'le château', svg: `
+      <circle class="zone" cx="250" cy="42" r="24"/>
+      <rect class="zone" x="0" y="262" width="300" height="38"/>
+      <rect class="zone" x="70" y="140" width="160" height="122"/>
+      <rect class="zone" x="36" y="110" width="50" height="152"/><rect class="zone" x="214" y="110" width="50" height="152"/>
+      <polygon class="zone" points="30,112 61,50 92,112"/><polygon class="zone" points="208,112 239,50 270,112"/>
+      <rect class="zone" x="125" y="96" width="50" height="46"/><polygon class="zone" points="118,98 150,44 182,98"/>
+      <path class="zone" d="M128 262 v-46 a22 22 0 0 1 44 0 v46 z"/>
+      <rect class="zone" x="50" y="140" width="22" height="28" rx="11"/><rect class="zone" x="228" y="140" width="22" height="28" rx="11"/>
+      <rect class="zone" x="88" y="170" width="24" height="30" rx="12"/><rect class="zone" x="188" y="170" width="24" height="30" rx="12"/>
+      <path class="line" d="M61 50 V30"/><polygon class="zone" points="61,30 80,36 61,42"/>
+      <path class="line" d="M239 50 V30"/><polygon class="zone" points="239,30 258,36 239,42"/>` },
+    { n: 'la fusée', svg: `
+      <circle class="zone" cx="240" cy="60" r="34"/><circle class="zone" cx="40" cy="250" r="22"/>
+      <polygon class="zone" points="40,40 46,54 60,54 49,62 53,76 40,68 27,76 31,62 20,54 34,54"/>
+      <polygon class="zone" points="250,180 254,190 264,190 256,196 259,206 250,200 241,206 244,196 236,190 246,190"/>
+      <path class="zone" d="M126 250 Q150 300 174 250 Z"/>
+      <polygon class="zone" points="112,190 82,240 118,232"/><polygon class="zone" points="188,190 218,240 182,232"/>
+      <path class="zone" d="M150 30 C 196 70, 196 170, 182 240 H118 C 104 170, 104 70, 150 30 Z"/>
+      <circle class="zone" cx="150" cy="120" r="24"/><circle class="zone" cx="150" cy="120" r="14"/>
+      <rect class="zone" x="132" y="180" width="36" height="14" rx="6"/>` },
+    { n: 'le chat', svg: `
+      <rect class="zone" x="0" y="264" width="300" height="36"/>
+      <path class="zone" d="M210 230 C 270 220, 280 150, 250 120 C 240 112, 232 122, 240 132 C 262 160, 250 205, 208 212 Z"/>
+      <ellipse class="zone" cx="160" cy="210" rx="72" ry="56"/>
+      <ellipse class="zone" cx="128" cy="258" rx="22" ry="12"/><ellipse class="zone" cx="190" cy="258" rx="22" ry="12"/>
+      <polygon class="zone" points="86,92 96,30 132,74"/><polygon class="zone" points="214,92 204,30 168,74"/>
+      <circle class="zone" cx="150" cy="120" r="66"/>
+      <ellipse class="zone" cx="124" cy="112" rx="12" ry="16"/><ellipse class="zone" cx="176" cy="112" rx="12" ry="16"/>
+      <polygon class="zone" points="140,140 160,140 150,152"/>
+      <path class="line" d="M150 152 q-10 14 -24 8 M150 152 q10 14 24 8"/>
+      <path class="line" d="M96 140 H58 M98 152 L60 162 M204 140 H242 M202 152 L240 162"/>` },
+    { n: "l'arc-en-ciel", svg: `
+      <circle class="zone" cx="250" cy="50" r="28"/>
+      ${[120, 100, 80, 60].map((r, i) => `<path class="zone" d="M${150 - r} 220 A ${r} ${r} 0 0 1 ${150 + r} 220 L ${150 + r - 20} 220 A ${r - 20} ${r - 20} 0 0 0 ${150 - r + 20} 220 Z"/>`).join('')}
+      <path class="zone" d="M110 220 A 40 40 0 0 1 190 220 Z"/>
+      <path class="zone" d="M10 236 a24 24 0 0 1 36 -24 a28 28 0 0 1 50 6 a20 20 0 0 1 4 34 h-82 a14 14 0 0 1 -8 -16 z"/>
+      <path class="zone" d="M196 236 a24 24 0 0 1 36 -24 a28 28 0 0 1 50 6 a20 20 0 0 1 4 34 h-82 a14 14 0 0 1 -8 -16 z"/>
+      <rect class="zone" x="0" y="268" width="300" height="32"/>` },
+    { n: 'le bateau', svg: `
+      <circle class="zone" cx="56" cy="56" r="30"/>
+      <path class="line" d="M200 50 q10 -10 20 0 q10 -10 20 0"/>
+      <path class="zone" d="M0 250 Q 37 236 75 250 T 150 250 T 225 250 T 300 250 V300 H0 Z"/>
+      <path class="zone" d="M50 214 H250 L218 254 H82 Z"/>
+      <rect class="zone" x="146" y="60" width="8" height="154"/>
+      <polygon class="zone" points="142,70 142,200 66,200"/><polygon class="zone" points="158,84 158,200 222,200"/>
+      <polygon class="zone" points="154,60 182,68 154,76"/>
+      <circle class="zone" cx="110" cy="232" r="8"/><circle class="zone" cx="150" cy="232" r="8"/><circle class="zone" cx="190" cy="232" r="8"/>` },
+    { n: 'la glace', svg: `
+      <polygon class="zone" points="104,150 196,150 150,286"/>
+      <path class="line" d="M118 176 L172 230 M182 176 L128 230 M112 196 L150 158 M188 196 L150 158"/>
+      <circle class="zone" cx="118" cy="140" r="36"/><circle class="zone" cx="182" cy="140" r="36"/>
+      <circle class="zone" cx="150" cy="92" r="40"/>
+      <circle class="zone" cx="150" cy="42" r="14"/>
+      <path class="line" d="M150 28 q6 -16 18 -18"/>
+      <rect class="zone" x="132" y="80" width="12" height="6" rx="3" transform="rotate(30 138 83)"/>
+      <rect class="zone" x="160" y="104" width="12" height="6" rx="3" transform="rotate(-30 166 107)"/>
+      <rect class="zone" x="104" y="130" width="12" height="6" rx="3" transform="rotate(20 110 133)"/>
+      <rect class="zone" x="186" y="128" width="12" height="6" rx="3" transform="rotate(-20 192 131)"/>` },
+    { n: 'le gâteau', svg: `
+      <ellipse class="zone" cx="150" cy="268" rx="130" ry="18"/>
+      <rect class="zone" x="50" y="190" width="200" height="72" rx="10"/>
+      <path class="zone" d="M50 200 q25 24 50 0 q25 24 50 0 q25 24 50 0 q25 24 50 0 v-10 h-200 z"/>
+      <rect class="zone" x="80" y="130" width="140" height="62" rx="10"/>
+      <rect class="zone" x="100" y="80" width="12" height="50" rx="4"/><rect class="zone" x="144" y="70" width="12" height="60" rx="4"/><rect class="zone" x="188" y="80" width="12" height="50" rx="4"/>
+      <path class="zone" d="M106 76 q-10 -14 0 -28 q10 14 0 28 z"/><path class="zone" d="M150 66 q-10 -14 0 -28 q10 14 0 28 z"/><path class="zone" d="M194 76 q-10 -14 0 -28 q10 14 0 28 z"/>
+      <circle class="zone" cx="110" cy="230" r="10"/><circle class="zone" cx="150" cy="230" r="10"/><circle class="zone" cx="190" cy="230" r="10"/>` },
+    { n: 'la princesse', svg: `
+      <rect class="zone" x="0" y="270" width="300" height="30"/>
+      <polygon class="zone" points="150,140 236,270 64,270"/>
+      <rect class="zone" x="128" y="128" width="44" height="40" rx="10"/>
+      <path class="zone" d="M128 140 L92 196 L104 202 L134 160 Z"/><path class="zone" d="M172 140 L208 196 L196 202 L166 160 Z"/>
+      <path class="zone" d="M114 92 C 108 40, 192 40, 186 92 C 196 120, 196 140, 182 150 C 180 110, 120 110, 118 150 C 104 140, 104 120, 114 92 Z"/>
+      <circle class="zone" cx="150" cy="96" r="30"/>
+      <circle class="zone" cx="139" cy="92" r="4"/><circle class="zone" cx="161" cy="92" r="4"/>
+      <path class="line" d="M140 108 q10 8 20 0"/>
+      <polygon class="zone" points="124,58 128,30 140,46 150,24 160,46 172,30 176,58"/>
+      <circle class="zone" cx="150" cy="40" r="5"/>
+      <path class="line" d="M110 230 H190"/>` },
+    { n: "l'escargot", svg: `
+      <rect class="zone" x="0" y="250" width="300" height="50"/>
+      <path class="zone" d="M30 246 C 30 222, 60 214, 100 214 H220 C 250 214, 262 196, 262 170 L 278 170 C 280 214, 262 246, 220 246 Z"/>
+      <path class="line" d="M262 172 L254 132 M276 170 L286 130"/>
+      <circle class="zone" cx="253" cy="130" r="7"/><circle class="zone" cx="287" cy="128" r="7"/>
+      <circle class="zone" cx="150" cy="150" r="66"/><circle class="zone" cx="156" cy="146" r="44"/><circle class="zone" cx="160" cy="142" r="24"/>
+      <circle class="zone" cx="40" cy="60" r="26"/>
+      <path class="zone" d="M210 40 q14 -24 28 0 q14 -24 28 0 q-14 30 -28 40 q-14 -10 -28 -40 z"/>` }
+  );
+
+  // ---------- Coloriage : choix du dessin, ou dessin libre ----------
+  const FREE_DRAW = { n: 'le dessin libre', free: true, bg: '#FFF6D6', e: '<span class="free-ic">✏️</span>' };
+  function drawingThumb(d) { return `<svg viewBox="0 0 300 300" class="thumb-svg" aria-hidden="true">${d.svg}</svg>`; }
+  function colorGame(G, f) {
+    const items = DRAWINGS.map(d => Object.assign({ e: drawingThumb(d), bg: '#FFFFFF' }, d)).concat([FREE_DRAW]);
+    picker(G, f, items, 'colorDone', d => d.n, 'Choisis ton dessin !', 'Choisis ton dessin', d => d.free ? freeDraw(G, f) : colorDrawing(G, f, d));
+  }
+  function freeDraw(G, f) {
+    const stage = $('#stage');
+    const card = el('div', 'paint-card free');
+    const cv = el('canvas');
+    const clear = el('button', 'paint-clear', '🧽'); clear.setAttribute('aria-label', 'Tout effacer');
+    const doneBtn = el('button', 'paint-done', '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M5 12.5l4.5 4.5L19 7.5"/></svg>');
+    doneBtn.setAttribute('aria-label', "J'ai fini"); doneBtn.hidden = true;
+    card.append(cv, clear, doneBtn);
+    stage.append(card);
+    const W = card.clientWidth, H = card.clientHeight;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    const x = cv.getContext('2d'); x.scale(dpr, dpr);
+    x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
+    x.lineCap = 'round'; x.lineJoin = 'round';
+    let cur = PAINT[4], size = 14, last = null, ink = 0;
+    cv.addEventListener('pointerdown', e => {
+      if (f !== G.flow) return;
+      e.preventDefault(); audio();
+      try { cv.setPointerCapture(e.pointerId); } catch (err) { /* rien */ }
+      const r = cv.getBoundingClientRect(); last = [e.clientX - r.left, e.clientY - r.top];
+      x.fillStyle = cur.hex; x.beginPath(); x.arc(last[0], last[1], (cur.n === 'blanc' ? size * 1.6 : size) / 2, 0, Math.PI * 2); x.fill();
+    });
+    cv.addEventListener('pointermove', e => {
+      if (!last) return;
+      const r = cv.getBoundingClientRect(), p = [e.clientX - r.left, e.clientY - r.top];
+      x.strokeStyle = cur.hex; x.lineWidth = cur.n === 'blanc' ? size * 1.6 : size;
+      x.beginPath(); x.moveTo(last[0], last[1]); x.lineTo(p[0], p[1]); x.stroke();
+      ink += Math.hypot(p[0] - last[0], p[1] - last[1]); last = p;
+      if (ink > 600 && doneBtn.hidden) { doneBtn.hidden = false; }
+    });
+    const up = () => { last = null; };
+    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+    clear.onclick = () => {
+      if (clear.dataset.armed !== '1') { clear.dataset.armed = '1'; clear.classList.add('armed'); say('Touche encore l\'éponge pour tout effacer.'); setTimeout(() => { clear.dataset.armed = ''; clear.classList.remove('armed'); }, 3000); return; }
+      clear.dataset.armed = ''; clear.classList.remove('armed');
+      x.fillStyle = '#fff'; x.fillRect(0, 0, W, H); ink = 0; doneBtn.hidden = true; sfx.soft();
+    };
+    doneBtn.onclick = async () => {
+      if (f !== G.flow) return;
+      audio(); sfx.good();
+      await say('Bravo ! Quel joli dessin !');
+      if (f === G.flow) { G.n = G.total; nextQ(); }
+    };
+    const ch = $('#choices');
+    ch.className = 'choices row palette';
+    PAINT.forEach(p => {
+      const b = el('button', 'swatch' + (p === cur ? ' on' : '') + (p.n === 'blanc' ? ' eraser' : ''));
+      b.style.setProperty('--paint', p.hex);
+      b.setAttribute('aria-label', p.n === 'blanc' ? 'gomme' : p.n);
+      b.onclick = () => { audio(); cur = p; $$('.swatch', ch).forEach(xx => xx.classList.toggle('on', xx === b)); sfx.tap(); say(p.n === 'blanc' ? 'La gomme' : cap(p.n)); };
+      ch.append(b);
+    });
+    $('#caption').textContent = '';
+    G.prompt = 'Dessine ce que tu veux avec ton doigt ! Choisis une couleur en bas.';
+    say(G.prompt);
+  }
+
+  // ---------- Suites logiques (dans « Formes et couleurs ») ----------
+  const SUITE_SETS = [
+    () => shuffle([{ e: '🍎', n: 'pomme' }, { e: '🍌', n: 'banane' }, { e: '🍇', n: 'raisin' }, { e: '🍓', n: 'fraise' }, { e: '🍊', n: 'orange' }]),
+    () => shuffle([{ e: '🐶', n: 'chien' }, { e: '🐱', n: 'chat' }, { e: '🐰', n: 'lapin' }, { e: '🐸', n: 'grenouille' }, { e: '🐷', n: 'cochon' }]),
+    () => shuffle([{ e: '⭐', n: 'étoile' }, { e: '🌙', n: 'lune' }, { e: '☀️', n: 'soleil' }, { e: '☁️', n: 'nuage' }]),
+    () => { const sh = SHAPES.find(s => s.n === 'le rond'); return shuffle(SHAPE_COL).map(c => ({ h: shapeSvg(sh, c.hex), n: c.m })); },
+    () => { const c = pick(SHAPE_COL); return shuffle(SHAPES).map(s => ({ h: shapeSvg(s, c.hex), n: s.n.replace(/^(le |la |l')/, '') })); }
+  ];
+  const suiteHtml = it => it.h || `<span class="emo">${it.e}</span>`;
+  function suiteQuestion(G) {
+    const L = lvl('suites');
+    const pats = L === 0 ? [[0, 1]] : L === 1 ? [[0, 0, 1], [0, 1, 1], [0, 1]] : [[0, 1, 2], [0, 0, 1, 1], [0, 1, 1], [0, 1, 2, 2]];
+    const pat = pick(pats);
+    const set = pick(SUITE_SETS)();
+    const k = Math.max(...pat) + 1;
+    const els = set.slice(0, k);
+    const shown = Math.min(7, pat.length * 2 + rand(pat.length));
+    const seq = Array.from({ length: shown }, (_, i) => els[pat[i % pat.length]]);
+    const ans = els[pat[shown % pat.length]];
+    const row = el('div', 'suite');
+    seq.forEach((it, i) => { const c = el('span', 's-it', suiteHtml(it)); c.style.animationDelay = (i * 120) + 'ms'; row.append(c); });
+    const qs = el('span', 's-it s-q', '?');
+    row.append(qs);
+    const read = seq.map(it => it.n).join(', ');
+    const opts = shuffle([ans, ...shuffle(set.filter(x => x !== ans)).slice(0, 2)]);
+    return {
+      visual: row, row: true, cls: 'suite-choices',
+      prompt: `Regarde bien la suite : ${read}… Qu'est-ce qui vient après ?`,
+      caption: 'Qu\'est-ce qui vient après ?',
+      success: `${read}, ${ans.n} !`,
+      confKey: `${pat.map(i => 'ABCD'[i]).join('')} : ${ans.n}`,
+      onCorrect: () => { qs.innerHTML = suiteHtml(ans); qs.classList.add('filled'); },
+      choices: opts.map(o => ({ html: suiteHtml(o), label: o.n, correct: o === ans, wrong: `Hmm… redis la suite avec moi : ${read}… Et après ?` }))
+    };
+  }
 
   // ---------- Écrans ----------
   let screen = 'start';
@@ -2312,7 +2527,7 @@
       if (n >= settings.memLimit) { store.set('memPlays', 0); store.set('memLock', 3); G.memLocked = true; homeIds = null; }
       else store.set('memPlays', n);
     } else if (G.id !== 'memory' && store.get('memLock', 0) > 0) store.set('memLock', store.get('memLock', 0) - 1);
-    if (G.id === 'puzzle') { const w = store.get('puzzleWins', 0); G.leveledUp = w < PUZZLE_LEVELS.length - 1; store.set('puzzleWins', w + 1); }
+    if (G.id === 'puzzle') { const w = store.get('puzzleLevel', 0); G.leveledUp = w < PUZZLE_AUTO_MAX; if (G.leveledUp) store.set('puzzleLevel', w + 1); store.set('puzzleWins', store.get('puzzleWins', 0) + 1); }
     releaseAwake();
     const won = awardSticker();
     if (pendingRest || limitReached()) { goRest(); return; }
