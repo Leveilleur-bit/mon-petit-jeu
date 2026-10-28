@@ -631,6 +631,26 @@ details.pgroup > :not(summary) { margin-top: 12px; }
 .choices.suite-choices .choice { min-height: 120px; }
 .choices.suite-choices .shape { width: min(22vw, 90px); }
 
+/* Le temps */
+#game .choices.skies { grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; margin-top: 2vh; }
+.choices.skies .choice { padding: 0; overflow: hidden; min-height: 92px; }
+.choices.skies .choice:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.sky { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.sky-ic { font-size: clamp(38px, 8vh, 60px); line-height: 1; }
+.sky-lb { font-family: var(--f-display); font-weight: 800; font-size: 17px; line-height: 1; padding: 3px 10px 1px; border-radius: 999px; background: rgb(255 255 255 / .8); color: var(--ink); }
+.sky-matin { background: linear-gradient(180deg, #FFD3A5, #FFF1C9); }
+.sky-midi { background: linear-gradient(180deg, #6EC6FF, #CDEBFF); }
+.sky-aprem { background: linear-gradient(180deg, #9ED8FF, #E7F6FF); }
+.sky-soir { background: linear-gradient(180deg, #8E6BC9, #FF9E7A); }
+.sky-nuit { background: linear-gradient(180deg, #1C2457, #3A4A9A); }
+.sky-printemps { background: linear-gradient(180deg, #D8F5C9, #FFE3F0); }
+.sky-ete { background: linear-gradient(180deg, #8FD6FF, #FFE9A8); }
+.sky-automne { background: linear-gradient(180deg, #FFD08A, #E8A06B); }
+.sky-hiver { background: linear-gradient(180deg, #DDEBFA, #FFFFFF); }
+.now-card { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: 24px; padding: 10px 22px; box-shadow: 0 6px 0 var(--card-edge); margin-top: 2vh; }
+.now-clock { font-size: 60px; line-height: 1; }
+.now-t { font-family: var(--f-display); font-weight: 800; font-size: 40px; color: var(--ink); font-variant-numeric: tabular-nums; padding-top: .1em; }
+
 /* ---------- Fin / pause ---------- */
 .big-star { font-size: clamp(110px, 32vw, 170px); line-height: 1; animation: star-in 1s cubic-bezier(.3, 1.6, .5, 1); }
 .end-title { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 52px; line-height: 1; }

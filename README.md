@@ -15,12 +15,13 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | 🎨 Formes et couleurs | Mélange : « Où est le rouge ? », « Où est le triangle rouge ? » et suites logiques (🔴🔵🔴🔵❓ : A B A B, puis A A B, puis A B C) |
 | 🐾 Les animaux | Mélange : qui fait ce bruit ? (cris), qu'est-ce qu'il mange ? (goûter), où est son ombre ? |
 | 🌱 La nature | Mélange : fruits et légumes, vivant ou pas vivant (deux paniers), remettre dans l'ordre comment ça grandit (poule, papillon, fleur, grenouille, personne) |
+| ⏰ Le temps | Mélange : « Et maintenant, c'est quand ? » (d'après l'heure du téléphone), « Le bain, c'est quand ? » (matin, midi, après-midi, soir, nuit), remettre sa journée dans l'ordre (réveil → petit-déjeuner → école → goûter → bain → dodo), les saisons (bonhomme de neige, plage, feuilles qui tombent…) |
 | 🐘 Grand, moyen, petit | Toucher le plus grand, le plus petit, puis le moyen |
 | 🖍️ Coloriage | 15 dessins à colorier (maison, fleur, poisson, papillon, voiture, licorne, château, fusée, chat, arc-en-ciel, bateau, glace, gâteau, princesse, escargot), cochés ✓ une fois faits, et dessin libre au doigt avec gomme |
 | 🎵 Musique | Xylophone libre ou 3 chansons guidées |
 | 🌿 Le labyrinthe | Un jardin de haies : faire glisser l'animal dans les allées jusqu'à son goûter (impasses, un seul bon chemin). De 3 × 4 à 6 × 8 cases, la taille monte seule. Le haut-parleur fait briller les prochaines cases du bon chemin |
 
-Les jeux regroupés gardent un réglage de difficulté et une ligne de bilan pour chaque thème (Lettres, Lire, Compter, Chiffres, Couleurs, Formes, Cris, Goûter, Ombres, Fruits et légumes, Vivant ou pas, Ça grandit). Maximum prévu : 20 jeux.
+Les jeux regroupés gardent un réglage de difficulté et une ligne de bilan pour chaque thème (Lettres, Lire, Compter, Chiffres, Couleurs, Formes, Suites, Moments, Journée, Saisons, Cris, Goûter, Ombres, Fruits et légumes, Vivant ou pas, Ça grandit). Maximum prévu : 20 jeux.
 
 **Accueil** : 9 jeux tirés au hasard à chaque ouverture de l'appli, en priorité ceux qui n'étaient pas affichés la fois précédente (réglable : « Tous les jeux »). Les jeux marqués ⭐ dans le coin des parents sont toujours affichés (Memory par défaut).
 
@@ -59,7 +60,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v22` → `v23`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v23` → `v24`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique

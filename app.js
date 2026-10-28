@@ -20,7 +20,7 @@
   const DEFAULTS = {
     volume: 1, rate: 0.9, effects: true, name: '', names: [],
     countMax: 30, letters: 'simple', timeLimit: 0, memLimit: 5, levels: {}, memPeek: 0, memDelay: 'normal', memGroup: 2,
-    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true, fil: true, gouter: true, chiffres: true, vivant: true, cycle: true, nombres: true, monde_animaux: true, nature: true, formescouleurs: true, mots: true },
+    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true, fil: true, gouter: true, chiffres: true, vivant: true, cycle: true, nombres: true, monde_animaux: true, nature: true, formescouleurs: true, mots: true, temps: true },
     homeMode: 'rotate', favs: ['memory']
   };
   const saved = store.get('settings', {});
@@ -280,6 +280,9 @@
       name: 'Ça grandit !', intro: 'Comment ça grandit ?', icon: '🐣', color: '#E8A400', rounds: 3,
       make(G) { return { custom: cycleGame }; }
     },
+    moments: { name: 'Moments de la journée', intro: 'Le temps !', icon: '🌅', color: '#E8A400', rounds: 5, make(G) { return momentQuestion(G); } },
+    journee: { name: 'Ma journée', intro: 'Ma journée !', icon: '⏰', color: '#E8A400', rounds: 3, make(G) { return { custom: dayOrderGame }; } },
+    saisons: { name: 'Les saisons', intro: 'Les saisons !', icon: '🍂', color: '#E8A400', rounds: 5, make(G) { return seasonQuestion(G); } },
     suites: {
       name: 'Suites logiques', intro: 'Les suites !', icon: '🔁', color: '#1E9BD6', rounds: 5,
       make(G) { return suiteQuestion(G); }
@@ -394,6 +397,9 @@
     vivant: { opts: ['Animaux et objets', '+ les plantes', '+ les pièges (nounours, robot, soleil…)'], def: 1 },
     cycle: { opts: ['3 étapes', '4 étapes'], def: 0 },
     chiffres: { opts: ['Tracé facile', 'Tracé précis'], def: 0 },
+    moments: { opts: ['Matin, soir, nuit', "+ l'après-midi", '+ le midi'], def: 0 },
+    journee: { opts: ['3 étapes', '4 étapes', 'Toute la journée (6)'], def: 0 },
+    saisons: { opts: ['Été et hiver', 'Les 4 saisons'], def: 0 },
     suites: { opts: ['A B A B', 'A A B, A B B', 'A B C, A A B B'], def: 0 },
     prenom: { opts: ['Lettres seulement', 'Lettres + tracé facile', 'Lettres + tracé précis'], def: 1 },
     memory: { opts: ['3 paires', '4 paires', '5 paires', '6 paires', '8 paires', '10 paires'], key: 'memLevel' },
@@ -432,10 +438,11 @@
     monde_animaux: combo('Les animaux', 'Les animaux !', '🐾', '#3F9A43', 6, () => { const p = shuffle(['animaux', 'animaux', 'gouter', 'gouter', 'ombres', 'ombres']); return p; }),
     nature: combo('La nature', 'La nature !', '🌱', '#2E8B57', 5, () => shuffle(['potager', 'potager', 'vivant', 'vivant', 'cycle'])),
     formescouleurs: combo('Formes et couleurs', 'Les formes et les couleurs !', '🎨', '#1E9BD6', 5, () => shuffle(['couleurs', 'formes', 'formes', 'suites', 'suites'])),
+    temps: combo('Le temps', 'Le temps qui passe !', '⏰', '#E8A400', 5, () => ['moments', 'moments', 'journee', 'saisons', 'moments']),
     mots: combo('Lettres et mots', 'Les lettres et les mots !', '🔤', '#1E63D6', 5, () => ['lettres', 'lettres', 'lire', 'lettres', 'lire'])
   });
-  const ORDER = ['memory', 'puzzle', 'prenom', 'mots', 'nombres', 'formescouleurs', 'monde_animaux', 'nature', 'tailles', 'coloriage', 'musique', 'fil'];
-  const SUB_ORDER = ['lettres', 'lire', 'prenom', 'compter', 'chiffres', 'couleurs', 'formes', 'suites', 'animaux', 'gouter', 'ombres', 'potager', 'vivant', 'cycle', 'tailles', 'memory', 'puzzle', 'fil', 'coloriage', 'musique'];
+  const ORDER = ['memory', 'puzzle', 'prenom', 'mots', 'nombres', 'formescouleurs', 'monde_animaux', 'nature', 'temps', 'tailles', 'coloriage', 'musique', 'fil'];
+  const SUB_ORDER = ['lettres', 'lire', 'prenom', 'compter', 'chiffres', 'couleurs', 'formes', 'suites', 'animaux', 'gouter', 'ombres', 'potager', 'vivant', 'cycle', 'moments', 'journee', 'saisons', 'tailles', 'memory', 'puzzle', 'fil', 'coloriage', 'musique'];
 
   function letterPool() {
     const base = settings.letters === 'all' ? LETTERS : LETTERS.filter(x => SIMPLE_LETTERS.includes(x.l));
@@ -2379,6 +2386,160 @@
       onCorrect: () => { qs.innerHTML = suiteHtml(ans); qs.classList.add('filled'); },
       choices: opts.map(o => ({ html: suiteHtml(o), label: o.n, correct: o === ans, wrong: `Hmm… redis la suite avec moi : ${read}… Et après ?` }))
     };
+  }
+
+  // ---------- Le temps : moments de la journée, ordre de la journée, saisons ----------
+  const MOMENTS = {
+    matin: { n: 'le matin', ic: '🌅', cls: 'sky-matin' },
+    midi: { n: 'le midi', ic: '☀️', cls: 'sky-midi' },
+    aprem: { n: "l'après-midi", ic: '🌤️', cls: 'sky-aprem' },
+    soir: { n: 'le soir', ic: '🌇', cls: 'sky-soir' },
+    nuit: { n: 'la nuit', ic: '🌙', cls: 'sky-nuit' }
+  };
+  const MOMENT_LEVELS = [['matin', 'soir', 'nuit'], ['matin', 'aprem', 'soir', 'nuit'], ['matin', 'midi', 'aprem', 'soir', 'nuit']];
+  const ACTIVITIES = [
+    { e: '⏰', n: 'se réveiller', m: 'matin', why: 'On se réveille le matin.' },
+    { e: '🥣', n: 'le petit-déjeuner', m: 'matin', why: 'On prend le petit-déjeuner le matin.' },
+    { e: '🎒', n: "partir à l'école", m: 'matin', why: "On part à l'école le matin." },
+    { e: '👕', n: "s'habiller", m: 'matin', why: "On s'habille le matin, après s'être réveillé." },
+    { e: '🍽️', n: 'le repas de la cantine', m: 'midi', why: 'On mange à la cantine le midi.' },
+    { e: '🍪', n: 'le goûter', m: 'aprem', why: "On prend le goûter l'après-midi." },
+    { e: '🛝', n: 'jouer au parc après l\'école', m: 'aprem', why: "On joue au parc l'après-midi, après l'école." },
+    { e: '🛁', n: 'le bain', m: 'soir', why: 'On prend son bain le soir.' },
+    { e: '🍲', n: 'le dîner', m: 'soir', why: 'On dîne le soir.' },
+    { e: '📖', n: "l'histoire avant de dormir", m: 'soir', why: "On lit une histoire le soir, avant de dormir." },
+    { e: '😴', n: 'dormir dans son lit', m: 'nuit', why: 'On dort la nuit.' },
+    { e: '🦉', n: 'le hibou qui se réveille', m: 'nuit', why: 'Le hibou se réveille la nuit, quand nous dormons.' },
+    { e: '✨', n: 'les étoiles dans le ciel', m: 'nuit', why: 'On voit les étoiles la nuit.' }
+  ];
+  function momentNow() {
+    const d = new Date(), h = d.getHours() + d.getMinutes() / 60;
+    return h >= 6 && h < 11.5 ? 'matin' : h < 13.5 && h >= 11.5 ? 'midi' : h >= 13.5 && h < 17.5 ? 'aprem' : h >= 17.5 && h < 20.5 ? 'soir' : 'nuit';
+  }
+  const skyHtml = k => `<span class="sky ${MOMENTS[k].cls}"><span class="sky-ic">${MOMENTS[k].ic}</span><span class="sky-lb">${MOMENTS[k].n.replace(/^(le |la |l')/, '')}</span></span>`;
+  function momentQuestion(G) {
+    const keys = MOMENT_LEVELS[lvl('moments')];
+    const now = momentNow();
+    const choices = keys.map(k => ({ html: skyHtml(k), label: MOMENTS[k].n, k }));
+    const ask = keys.map(k => MOMENTS[k].n).join(', ').replace(/, ([^,]*)$/, ' ou $1');
+    if (!G.askedNow && keys.includes(now)) {           // première question : le moment réel
+      G.askedNow = true;
+      const vis = el('div', 'now-card', `<span class="now-clock">🕰️</span><span class="now-t">${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>`);
+      return {
+        visual: vis, cls: 'skies',
+        prompt: `Et maintenant, c'est quand ? Regarde dehors ! C'est ${ask} ?`, caption: "Et maintenant, c'est quand ?",
+        success: `Oui ! Maintenant, c'est ${MOMENTS[now].n}.`, confKey: `maintenant : ${MOMENTS[now].n}`,
+        choices: choices.map(c => ({ html: c.html, label: c.label, correct: c.k === now, wrong: `Hmm… regarde dehors : il fait ${now === 'nuit' || now === 'soir' ? 'sombre' : 'jour'}. Essaie encore !` }))
+      };
+    }
+    const pool = ACTIVITIES.filter(a => keys.includes(a.m));
+    const t = pickNew(pool, G, a => a.n);
+    const card = el('button', 'vcard', `<span class="emo">${t.e}</span>`);
+    card.setAttribute('aria-label', 'Écouter encore'); card.onclick = repeat;
+    return {
+      visual: card, cls: 'skies',
+      prompt: `${cap(t.n)}, c'est quand ? ${cap(ask)} ?`, caption: `${cap(t.n)}, c'est quand ?`,
+      success: t.why, confKey: `${t.n} : ${MOMENTS[t.m].n}`,
+      choices: choices.map(c => ({ html: c.html, label: c.label, correct: c.k === t.m, wrong: `Hmm… ${t.n}, est-ce que c'est ${c.label} ? Réfléchis encore !` }))
+    };
+  }
+
+  // Remettre sa journée dans l'ordre
+  const DAY_STEPS = [
+    { e: '⏰', n: 'je me réveille' }, { e: '🥣', n: 'je prends mon petit-déjeuner' }, { e: '🎒', n: "je vais à l'école" },
+    { e: '🍪', n: 'je prends mon goûter' }, { e: '🛁', n: 'je prends mon bain' }, { e: '😴', n: 'je dors' }
+  ];
+  function dayOrderGame(G, f) {
+    const L = lvl('journee');
+    const count = [3, 4, 6][L];
+    let idx = [0, 1, 2, 3, 4, 5];
+    if (count === 3) idx = pick([[0, 2, 5], [1, 3, 5], [0, 3, 4], [0, 1, 5]]);
+    if (count === 4) idx = pick([[0, 1, 3, 5], [0, 2, 4, 5], [1, 2, 3, 4]]);
+    orderSteps(G, f, idx.map(i => DAY_STEPS[i]), 'journee',
+      'Remets ta journée dans l\'ordre ! Qu\'est-ce qu\'on fait en premier ?', 'Remets la journée dans l\'ordre');
+  }
+
+  // Les saisons
+  const SEASONS = {
+    printemps: { n: 'le printemps', ic: '🌷', cls: 'sky-printemps' },
+    ete: { n: "l'été", ic: '🏖️', cls: 'sky-ete' },
+    automne: { n: "l'automne", ic: '🍂', cls: 'sky-automne' },
+    hiver: { n: "l'hiver", ic: '❄️', cls: 'sky-hiver' }
+  };
+  const SEASON_THINGS = [
+    { e: '⛄', n: 'le bonhomme de neige', s: 'hiver', why: "On fait un bonhomme de neige en hiver, quand il neige." },
+    { e: '🛷', n: 'la luge', s: 'hiver', why: "On fait de la luge en hiver, sur la neige." },
+    { e: '🎄', n: 'le sapin de Noël', s: 'hiver', why: "Noël, c'est en hiver." },
+    { e: '🧣', n: "l'écharpe et le bonnet", s: 'hiver', why: "On met une écharpe et un bonnet en hiver, quand il fait froid." },
+    { e: '🏖️', n: 'la plage', s: 'ete', why: "On va à la plage en été, quand il fait chaud." },
+    { e: '🍦', n: 'la glace', s: 'ete', why: "On mange des glaces en été, quand il fait chaud." },
+    { e: '🩱', n: 'le maillot de bain', s: 'ete', why: "On met son maillot de bain en été." },
+    { e: '🌷', n: 'les fleurs qui poussent', s: 'printemps', why: "Les fleurs poussent au printemps." },
+    { e: '🐣', n: 'les poussins qui naissent', s: 'printemps', why: "Beaucoup de bébés animaux naissent au printemps." },
+    { e: '🍂', n: 'les feuilles qui tombent', s: 'automne', why: "Les feuilles tombent des arbres en automne." },
+    { e: '🎃', n: 'la citrouille', s: 'automne', why: "Les citrouilles, c'est en automne." },
+    { e: '🍄', n: 'les champignons', s: 'automne', why: "On ramasse des champignons en automne." }
+  ];
+  function seasonQuestion(G) {
+    const keys = lvl('saisons') === 0 ? ['ete', 'hiver'] : ['printemps', 'ete', 'automne', 'hiver'];
+    const t = pickNew(SEASON_THINGS.filter(x => keys.includes(x.s)), G, x => x.n);
+    const card = el('button', 'vcard', `<span class="emo">${t.e}</span>`);
+    card.setAttribute('aria-label', 'Écouter encore'); card.onclick = repeat;
+    const html = k => `<span class="sky ${SEASONS[k].cls}"><span class="sky-ic">${SEASONS[k].ic}</span><span class="sky-lb">${SEASONS[k].n.replace(/^(le |la |l')/, '')}</span></span>`;
+    const ask = keys.map(k => SEASONS[k].n).join(', ').replace(/, ([^,]*)$/, ' ou $1');
+    return {
+      visual: card, cls: 'skies',
+      prompt: `${cap(t.n)}, c'est en quelle saison ? ${cap(ask)} ?`, caption: 'En quelle saison ?',
+      success: t.why, confKey: `${t.n} : ${SEASONS[t.s].n}`,
+      choices: keys.map(k => ({ html: html(k), label: SEASONS[k].n, correct: k === t.s, wrong: `Hmm… est-ce qu'il fait chaud ou froid ? Réfléchis encore !` }))
+    };
+  }
+
+  // Ordre générique (utilisé par la journée)
+  function orderSteps(G, f, stages, statId, prompt, caption) {
+    const stage = $('#stage');
+    const slots = el('div', 'cyc-slots');
+    stages.forEach((s, i) => { if (i) slots.append(el('span', 'cyc-arrow', '➜')); slots.append(el('div', 'cyc-slot', `<span class="cyc-num">${i + 1}</span>`)); });
+    stage.append(slots);
+    const ch = $('#choices');
+    ch.className = 'choices row cyc-cards';
+    ch.style.gridTemplateColumns = `repeat(${Math.min(stages.length, 3)}, minmax(0, 1fr))`;
+    let k = 0, miss = 0;
+    const order = shuffle(stages.map((s, i) => i));
+    if (order.every((v, i) => v === i)) order.reverse();
+    order.forEach((idx, j) => {
+      const s = stages[idx];
+      const b = el('button', 'choice cyc-card', `<span class="emo">${s.e}</span>`);
+      b.setAttribute('aria-label', s.n);
+      b.style.animationDelay = (j * 90) + 'ms';
+      b.onclick = async () => {
+        if (f !== G.flow || b.disabled) return;
+        audio();
+        if (idx === k) {
+          b.disabled = true; b.classList.add('used');
+          const sl = $$('.cyc-slot', slots)[k];
+          sl.innerHTML = `<span class="emo">${s.e}</span>`; sl.classList.add('filled');
+          sfx.count(k + 1);
+          statAnswer(statId, !miss); miss = 0; k++;
+          if (k < stages.length) { say(k === 1 ? `D'abord, ${s.n}. Et après ?` : `Puis ${s.n}. Et après ?`); return; }
+          sfx.good(); slots.classList.add('whole');
+          await say(`Bravo ! ${cap(stages.map(x => x.n).join(', puis '))} !`);
+          if (f !== G.flow) return;
+          const dot = $$('.dot')[G.n]; if (dot) { dot.classList.add('on'); dot.textContent = '⭐'; }
+          await sleep(400);
+          G.n++; if (f === G.flow) nextQ();
+        } else {
+          miss++;
+          statAnswer(statId, false, `${stages[k].n} → ${s.n}`);
+          sfx.soft(); b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope');
+          say(k === 0 ? "Pas encore ! Qu'est-ce qu'on fait en tout premier ?" : `Pas encore ! Qu'est-ce qu'on fait juste après : ${stages[k - 1].n} ?`);
+        }
+      };
+      ch.append(b);
+    });
+    $('#caption').textContent = caption;
+    G.prompt = prompt;
+    say(prompt);
   }
 
   // ---------- Écrans ----------
