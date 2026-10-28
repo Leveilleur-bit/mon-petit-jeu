@@ -1873,6 +1873,10 @@
     if (confKey) s.conf[confKey] = (s.conf[confKey] || 0) + 1;
     else { s.q++; if (firstTry) s.first++; }
     store.set('stats', all);
+    if (G) {                                   // détail de la partie en cours, pour le journal
+      const l = (G.log = G.log || {}), e = l[id] = l[id] || { q: 0, first: 0, err: [] };
+      if (confKey) { if (e.err.length < 20) e.err.push(confKey); } else { e.q++; if (firstTry) e.first++; }
+    }
   }
   function statPlay(id) {
     const all = loadStats(), s = statFor(all, id);
@@ -2031,6 +2035,137 @@
     say(G.prompt);
   }
 
+  // ---------- Sauvegarde et suivi sur GitHub (dépôt privé) ----------
+  // data.json : envoyé par l'appli (bilan, journal des parties, temps par jour, niveaux, album, réglages)
+  // config.json : écrit par Claude ou les parents ; l'appli applique les réglages qu'il contient.
+  const GH = { owner: 'Leveilleur-bit', repo: 'mon-petit-jeu-data', branch: 'main' };
+  const ghToken = () => store.get('ghToken', '');
+  const ghUrl = path => `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${path}`;
+  const ghHeaders = () => ({ Authorization: 'token ' + ghToken(), Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' });
+  const b64 = str => btoa(unescape(encodeURIComponent(str)));
+  const unb64 = str => decodeURIComponent(escape(atob(str.replace(/\n/g, ''))));
+  const STORE_KEYS = ['memLevel', 'puzzleWins', 'labyWins', 'countLevel', 'digitNext', 'memPlays', 'memLock', 'puzzleDone', 'memThemesDone', 'namesDone', 'stickers'];
+  const SETTING_KEYS = ['levels', 'memPeek', 'memDelay', 'memGroup', 'memLimit', 'countMax', 'letters', 'timeLimit', 'homeMode', 'favs', 'games', 'names', 'volume', 'rate', 'effects'];
+
+  function ghStatus(txt, ok) { const e = $('#gh-status'); if (e) { e.textContent = txt; e.className = 'muted ' + (ok === true ? 'ok' : ok === false ? 'ko' : ''); } }
+  async function ghGet(path) {
+    const r = await fetch(ghUrl(path) + '?ref=' + GH.branch + '&t=' + Date.now(), { headers: ghHeaders(), cache: 'no-store' });
+    if (r.status === 404) return { missing: true };
+    if (r.status === 401 || r.status === 403) throw new Error('auth');
+    if (!r.ok) throw new Error('http ' + r.status);
+    const d = await r.json();
+    return { sha: d.sha, json: JSON.parse(unb64(d.content || '') || 'null') };
+  }
+  async function ghPut(path, obj, message) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const cur = await ghGet(path);
+      const body = { message, content: b64(JSON.stringify(obj, null, 1)), branch: GH.branch };
+      if (cur.sha) body.sha = cur.sha;
+      const r = await fetch(ghUrl(path), { method: 'PUT', headers: ghHeaders(), body: JSON.stringify(body) });
+      if (r.ok) return true;
+      if (r.status === 401 || r.status === 403) throw new Error('auth');
+      if (r.status !== 409 && r.status !== 422) throw new Error('http ' + r.status);
+    }
+    throw new Error('conflit');
+  }
+
+  function snapshot() {
+    const st = {};
+    STORE_KEYS.forEach(k => { st[k] = store.get(k, null); });
+    const s = {};
+    SETTING_KEYS.forEach(k => { s[k] = settings[k]; });
+    return {
+      app: 'mon-petit-jeu', schema: 1, savedAt: new Date().toISOString(),
+      child: { name: settings.name || '' },
+      games: Object.fromEntries(ORDER.map(id => [id, GAMES[id].name])),
+      stats: loadStats(),
+      events: store.get('events', []),
+      dailyMinutes: store.get('usageHist', {}),
+      today: usage ? { minutes: Math.round(usage.sec / 60), extra: usage.extra, sessions: usage.log || [] } : null,
+      progress: st,
+      settings: s,
+      configApplied: store.get('configVersion', 0)
+    };
+  }
+  let syncTimer = null, syncing = false;
+  function scheduleSync(delay = 20000) {
+    if (!ghToken()) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => syncNow(false), delay);
+  }
+  async function syncNow(verbose) {
+    if (!ghToken() || syncing) return;
+    if (!navigator.onLine) { ghStatus('Hors ligne : envoi au prochain réseau.'); return; }
+    syncing = true;
+    try {
+      if (verbose) ghStatus('Envoi…');
+      await ghPut('data.json', snapshot(), `Données de jeu (${new Date().toLocaleString('fr-FR')})`);
+      const t = new Date().toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      store.set('ghLastSync', t);
+      ghStatus(`✓ Envoyé le ${t}`, true);
+    } catch (e) {
+      ghStatus(e.message === 'auth' ? 'Jeton refusé : vérifiez-le (accès « Contents : Read and write » au dépôt mon-petit-jeu-data).' : 'Envoi impossible pour le moment. Nouvel essai plus tard.', false);
+    } finally { syncing = false; }
+  }
+  async function pullConfig(verbose) {
+    if (!ghToken() || !navigator.onLine) return;
+    try {
+      const r = await ghGet('config.json');
+      if (r.missing || !r.json) { if (verbose) ghStatus('Connecté. Pas encore de réglages envoyés par Claude.', true); return; }
+      const c = r.json;
+      if ((c.version || 0) <= store.get('configVersion', 0)) { if (verbose) ghStatus('Connecté. Réglages déjà à jour.', true); return; }
+      const s = c.settings || {};
+      Object.keys(s).forEach(k => {
+        if (!SETTING_KEYS.includes(k)) return;
+        if (k === 'levels') settings.levels = Object.assign({}, settings.levels, s.levels);
+        else if (k === 'games') settings.games = Object.assign({}, settings.games, s.games);
+        else settings[k] = s[k];
+      });
+      saveSettings();
+      const p = c.progress || {};
+      Object.keys(p).forEach(k => { if (STORE_KEYS.includes(k) && k !== 'stickers') store.set(k, p[k]); });
+      store.set('configVersion', c.version || 0);
+      store.set('configNote', { date: c.date || '', note: c.note || '' });
+      homeIds = null;
+      ghStatus(`✓ Nouveaux réglages appliqués (${c.date || 'version ' + c.version}).`, true);
+      if (screen === 'parent') fillParent();
+    } catch (e) {
+      if (verbose) ghStatus(e.message === 'auth' ? 'Jeton refusé.' : 'Impossible de lire les réglages pour le moment.', false);
+    }
+  }
+  async function restoreFromGitHub(btn) {
+    if (btn.dataset.armed !== '1') { btn.dataset.armed = '1'; btn.textContent = 'Toucher encore pour restaurer'; setTimeout(() => { btn.dataset.armed = ''; btn.textContent = 'Restaurer depuis GitHub'; }, 3000); return; }
+    btn.dataset.armed = ''; btn.textContent = 'Restaurer depuis GitHub';
+    try {
+      const r = await ghGet('data.json');
+      if (r.missing || !r.json) { ghStatus('Aucune sauvegarde trouvée.', false); return; }
+      const d = r.json;
+      if (d.stats) store.set('stats', d.stats);
+      if (d.events) store.set('events', d.events);
+      if (d.dailyMinutes) store.set('usageHist', d.dailyMinutes);
+      Object.entries(d.progress || {}).forEach(([k, v]) => { if (STORE_KEYS.includes(k) && v != null) store.set(k, v); });
+      Object.entries(d.settings || {}).forEach(([k, v]) => { if (SETTING_KEYS.includes(k) && v != null) settings[k] = v; });
+      if (d.child && d.child.name && !settings.name) settings.name = d.child.name;
+      saveSettings(); homeIds = null;
+      fillParent(); updateAlbumBadge();
+      ghStatus('✓ Sauvegarde restaurée (album, bilan, niveaux, réglages).', true);
+    } catch (e) { ghStatus('Restauration impossible pour le moment.', false); }
+  }
+  // journal d'une partie terminée
+  function logGame() {
+    if (!G) return;
+    const ev = { t: new Date().toISOString(), g: G.id, d: Math.round((Date.now() - (G.t0 || Date.now())) / 1000), r: G.log || {} };
+    const lv = {};
+    (G.subs ? [...G.subs].map(x => x === 'chiffre' ? 'chiffres' : x) : [G.id]).forEach(id => { if (LEVEL_CFG[id]) lv[id] = lvl(id); });
+    ev.lv = lv;
+    const all = store.get('events', []);
+    all.push(ev);
+    store.set('events', all.slice(-600));
+    scheduleSync();
+  }
+  window.addEventListener('online', () => scheduleSync(3000));
+  document.addEventListener('visibilitychange', () => { if (document.hidden && ghToken()) syncNow(false); });
+
   // ---------- Écrans ----------
   let screen = 'start';
   function show(id) {
@@ -2098,7 +2233,7 @@
   let G = null;
   function startGame(id, opts = {}) {
     const def = GAMES[id];
-    G = { id, def, opts, n: 0, total: def.rounds, used: new Set(), usedN: new Set(), flow: 0, lock: false };
+    G = { id, def, opts, t0: Date.now(), n: 0, total: def.rounds, used: new Set(), usedN: new Set(), flow: 0, lock: false };
     $('#game').classList.toggle('counting', !!def.full);
     $('#game').classList.toggle('solo', def.rounds === 1);
     const prog = $('#progress'); prog.innerHTML = '';
@@ -2166,6 +2301,7 @@
   function repeat() { audio(); if (G && G.replay) G.replay(); else if (G && G.prompt) say(G.prompt); }
 
   function finish() {
+    logGame();
     if (G.subs) G.subs.forEach(id => statPlay(id === 'chiffre' ? 'chiffres' : id)); else statPlay(G.id);
     if (G.def.counting) store.set('countLevel', Math.min(settings.countMax, countLevel() + 2));
     if (G.id === 'memory') { const w = store.get('memLevel', 0); G.leveledUp = w < MEMORY_AUTO_MAX; if (G.leveledUp) store.set('memLevel', w + 1); }
@@ -2249,6 +2385,12 @@
     usage.sec += delta;
     usage.log[usage.log.length - 1].sec += delta;
     usage.lastAt = now;
+    if (Math.round(usage.sec) % 30 < 2.1) {           // historique des minutes par jour (90 jours)
+      const uh = store.get('usageHist', {});
+      uh[usage.day] = Math.round(usage.sec / 60);
+      const days = Object.keys(uh); if (days.length > 90) delete uh[days[0]];
+      store.set('usageHist', uh);
+    }
     lastTick = now;
     store.set('usage', usage);
     const left = (settings.timeLimit + usage.extra) * 60 - usage.sec;
@@ -2353,6 +2495,11 @@
     renderLevels();
     renderBilan();
     renderCries();
+    const tok = ghToken();
+    $('#gh-connected').hidden = !tok; $('#gh-connect').hidden = !!tok;
+    if (tok) ghStatus(store.get('ghLastSync', '') ? `✓ Dernier envoi : ${store.get('ghLastSync', '')}` : 'Connecté.', true);
+    const cn = store.get('configNote', null);
+    $('#gh-note').textContent = cn && cn.note ? `Réglages reçus${cn.date ? ' le ' + cn.date : ''} : ${cn.note}` : '';
     freshUsage();
     const min = Math.floor(usage.sec / 60);
     let info = `Joué aujourd'hui : ${min} min`;
@@ -2468,6 +2615,19 @@
       msg.textContent = 'Le micro n\'est pas disponible. Autorisez le micro pour ce site dans Chrome, puis réessayez.';
     }
   }
+  $('#btn-gh-save').onclick = async () => {
+    const v = $('#gh-token').value.trim();
+    if (!v) { ghStatus('Collez d\'abord le jeton.', false); return; }
+    store.set('ghToken', v); $('#gh-token').value = '';
+    ghStatus('Vérification…');
+    try { await ghGet('data.json'); } catch (e) { store.set('ghToken', ''); ghStatus(e.message === 'auth' ? 'Jeton refusé : vérifiez le dépôt mon-petit-jeu-data et l\'accès « Contents : Read and write ».' : 'Impossible de joindre GitHub. Vérifiez le réseau et que le dépôt mon-petit-jeu-data existe.', false); return; }
+    fillParent(); await syncNow(true); pullConfig(false);
+  };
+  $('#btn-gh-sync').onclick = async () => { await syncNow(true); pullConfig(false); };
+  $('#btn-gh-restore').onclick = e => restoreFromGitHub(e.target);
+  $('#btn-gh-off').onclick = () => { store.set('ghToken', ''); fillParent(); ghStatus('Déconnecté. Les données restent sur le téléphone.'); };
+  setTimeout(() => { pullConfig(false); scheduleSync(8000); }, 1500);
+
   $('#btn-bilan-reset').onclick = e => {
     if (e.target.dataset.armed !== '1') { e.target.dataset.armed = '1'; e.target.textContent = 'Toucher encore'; setTimeout(() => { e.target.dataset.armed = ''; e.target.textContent = 'Effacer le bilan'; }, 3000); return; }
     store.set('stats', {}); e.target.dataset.armed = ''; e.target.textContent = 'Effacer le bilan'; renderBilan();

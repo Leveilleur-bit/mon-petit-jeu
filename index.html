@@ -111,6 +111,20 @@
       <div class="row"><span></span><button id="btn-bilan-reset" class="pill-text">Effacer le bilan</button></div>
     </details>
 
+    <details class="pgroup" data-k="gh">
+      <summary>☁️ Sauvegarde et suivi</summary>
+      <p class="muted">Envoie le bilan, le journal des parties, le temps de jeu par jour, les niveaux et l'album dans votre dépôt GitHub privé <b>mon-petit-jeu-data</b>, après chaque partie. Sert de sauvegarde, et permet à Claude de lire les résultats et d'envoyer des réglages adaptés (fichier config.json), appliqués à l'ouverture de l'appli.</p>
+      <div id="gh-connect" class="gh-box">
+        <label for="gh-token" class="muted">Jeton GitHub (accès « Contents : Read and write » au seul dépôt mon-petit-jeu-data)</label>
+        <div class="row"><input id="gh-token" type="password" autocomplete="off" placeholder="github_pat_…"><button id="btn-gh-save" class="pill-text">Connecter</button></div>
+      </div>
+      <div id="gh-connected" class="gh-box" hidden>
+        <div class="row gh-btns"><button id="btn-gh-sync" class="pill-text">Envoyer maintenant</button><button id="btn-gh-restore" class="pill-text">Restaurer depuis GitHub</button><button id="btn-gh-off" class="pill-text">Déconnecter</button></div>
+      </div>
+      <p id="gh-status" class="muted"></p>
+      <p id="gh-note" class="muted"></p>
+    </details>
+
     <details class="pgroup" data-k="s1">
       <summary>Voix et sons</summary>
       <label class="row" for="set-volume"><span>Volume</span><input id="set-volume" type="range" min="0.2" max="1" step="0.1"></label>

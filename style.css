@@ -599,6 +599,12 @@ details.pgroup > :not(summary) { margin-top: 12px; }
 .cyc-card.used { opacity: .2; }
 .choice.nope { animation: wobble .5s; }
 
+.gh-box { display: flex; flex-direction: column; gap: 6px; }
+.gh-box input { flex: 1 1 160px; }
+.gh-btns { justify-content: flex-start; gap: 8px; }
+#gh-status.ok { color: var(--grass-dk); font-weight: 700; }
+#gh-status.ko { color: #B4581C; font-weight: 700; }
+
 /* ---------- Fin / pause ---------- */
 .big-star { font-size: clamp(110px, 32vw, 170px); line-height: 1; animation: star-in 1s cubic-bezier(.3, 1.6, .5, 1); }
 .end-title { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 52px; line-height: 1; }
