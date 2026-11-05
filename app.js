@@ -404,7 +404,7 @@
     prenom: { opts: ['Lettres seulement', 'Lettres + tracé facile', 'Lettres + tracé précis'], def: 1 },
     memory: { opts: ['3 paires', '4 paires', '5 paires', '6 paires', '8 paires', '10 paires'], key: 'memLevel' },
     puzzle: { opts: ['2 morceaux', '4 morceaux', '6 morceaux', '9 morceaux', '12 morceaux', '16 morceaux'], key: 'puzzleLevel' },
-    fil: { opts: ['3 × 4 cases', '4 × 5 cases', '5 × 6 cases', '5 × 7 cases', '6 × 8 cases'], key: 'labyWins' }
+    fil: { opts: ['3 × 4 cases', '4 × 5 cases', '5 × 6 cases', '5 × 7 cases', '6 × 8 cases', '7 × 10 cases', '8 × 12 cases'], key: 'labyWins' }
   };
   function lvl(id) {
     const c = LEVEL_CFG[id];
@@ -1546,7 +1546,7 @@
 
   // ---------- Le labyrinthe : un jardin de haies, l'animal en haut, son goûter en bas ----------
   // Tailles (colonnes × lignes) ; le niveau monte seul à chaque labyrinthe réussi.
-  const LABY_LEVELS = [[3, 4], [4, 5], [5, 6], [5, 7], [6, 8]];
+  const LABY_LEVELS = [[3, 4], [4, 5], [5, 6], [5, 7], [6, 8], [7, 10], [8, 12]];
   const labyLevel = () => Math.min(store.get('labyWins', 0), LABY_LEVELS.length - 1);
 
   function makeMaze(C, R) {
