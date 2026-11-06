@@ -672,6 +672,11 @@ details.pgroup > :not(summary) { margin-top: 12px; }
 .parent-scroll .row select { max-width: 62%; min-width: 0; text-overflow: ellipsis; }
 #set-voice { flex: 1 1 160px; }
 
+.simon.animals .simon-pad { filter: none; font-size: clamp(44px, 13vw, 70px); }
+.simon.animals .simon-pad.lit { transform: scale(1.06); box-shadow: inset 0 -4px 0 var(--d), 0 0 0 5px #fff, 0 0 30px #fff; }
+.simon.animals .simon-pad.lit span { display: inline-block; animation: joy .5s; }
+.simon-opts { background: #FFECEC; }
+
 /* ---------- Fin / pause ---------- */
 .big-star { font-size: clamp(110px, 32vw, 170px); line-height: 1; animation: star-in 1s cubic-bezier(.3, 1.6, .5, 1); }
 .end-title { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 52px; line-height: 1; }

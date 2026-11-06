@@ -19,7 +19,7 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | 🐘 Grand, moyen, petit | Toucher le plus grand, le plus petit, puis le moyen |
 | 🖍️ Coloriage | 15 dessins à colorier (maison, fleur, poisson, papillon, voiture, licorne, château, fusée, chat, arc-en-ciel, bateau, glace, gâteau, princesse, escargot), cochés ✓ une fois faits, et dessin libre au doigt avec gomme |
 | 🎵 Musique | Xylophone libre ou 3 chansons guidées |
-| 🔴 Répète après moi | 4 grosses touches de couleur (grenouille, coccinelle, baleine, poussin), chacune avec sa note : l'appli joue une suite, l'enfant la refait ; une couleur de plus à chaque réussite (5 suites par partie). En cas d'erreur, la suite est rejouée (plus lentement et avec un indice après 2 erreurs). Niveaux : 3 couleurs lent, 4 couleurs, 4 couleurs rapide |
+| 🔴 Répète après moi | 4 grosses touches : l'appli joue une suite, l'enfant la refait ; une touche de plus à chaque réussite (5 suites par partie). Au choix dans le coin des parents : **couleurs et notes** (par défaut) ou **animaux et cris** (canard, chien, cochon, souris ; les cris enregistrés sont utilisés). On peut toucher dès la fin de la suite. En cas d'erreur, la suite est rejouée (plus lentement, avec un indice et les noms dits à voix haute après 2 erreurs). Niveaux : 3 touches lent, 4 touches, 4 touches rapide |
 | 🌿 Le labyrinthe | Un jardin de haies : faire glisser l'animal dans les allées jusqu'à son goûter (impasses, un seul bon chemin). De 3 × 4 à 8 × 12 cases, la taille monte seule. Le haut-parleur fait briller les prochaines cases du bon chemin |
 
 Les jeux regroupés gardent un réglage de difficulté et une ligne de bilan pour chaque thème (Lettres, Lire, Compter, Chiffres, Couleurs, Formes, Suites, Moments, Journée, Saisons, Cris, Goûter, Ombres, Fruits et légumes, Vivant ou pas, Ça grandit). Maximum prévu : 20 jeux.
@@ -41,7 +41,7 @@ Appui long (2 secondes) sur la petite roue en haut à droite de l'écran des jeu
 
 **🐮 Cris des animaux** : écouter chaque cri, l'enregistrer au micro (4 s max), importer un fichier son (📁, ex. depuis bigsoundbank.com, sons libres de droits), ou revenir au cri de l'appli.
 
-Réglages : choix de la voix (voix de femme par défaut quand le téléphone l'indique) et hauteur de la voix, **difficulté jeu par jeu** (nombre d'images, formes seules ou avec couleurs, tracé facile ou précis, nombre de paires, de morceaux…), volume, vitesse de la voix, bruitages, prénom, autres prénoms à écrire, jeux affichés, « compter jusqu'à », lettres simples ou tout l'alphabet, jeux favoris ⭐, vider l'album, limite de temps d'écran par jour (temps cumulé sur toute la journée, liste des utilisations du jour, alerte vocale 2 minutes avant, « − 10 min », « + 10 min » et remise à zéro).
+Réglages : choix de la voix (voix de femme par défaut quand le téléphone l'indique) et hauteur de la voix (une voix plus aiguë si le téléphone n'a qu'une voix d'homme), **difficulté jeu par jeu** (nombre d'images, formes seules ou avec couleurs, tracé facile ou précis, nombre de paires, de morceaux…), volume, vitesse de la voix, bruitages, prénom, autres prénoms à écrire, jeux affichés, « compter jusqu'à », lettres simples ou tout l'alphabet, jeux favoris ⭐, vider l'album, limite de temps d'écran par jour (temps cumulé sur toute la journée, liste des utilisations du jour, alerte vocale 2 minutes avant, « − 10 min », « + 10 min » et remise à zéro).
 Tout est enregistré sur le téléphone uniquement.
 
 ## Mettre en ligne (GitHub Pages)
@@ -61,7 +61,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v26` → `v27`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v27` → `v28`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique

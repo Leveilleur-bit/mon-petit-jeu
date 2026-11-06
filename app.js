@@ -18,7 +18,7 @@
 
   // ---------- Réglages ----------
   const DEFAULTS = {
-    volume: 1, rate: 0.9, pitch: 1.15, voiceURI: '', effects: true, name: '', names: [],
+    volume: 1, rate: 0.9, pitch: 1.15, voiceURI: '', simonMode: 'couleurs', effects: true, name: '', names: [],
     countMax: 30, letters: 'simple', timeLimit: 0, memLimit: 5, levels: {}, memPeek: 0, memDelay: 'normal', memGroup: 2,
     games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true, fil: true, gouter: true, chiffres: true, vivant: true, cycle: true, nombres: true, monde_animaux: true, nature: true, formescouleurs: true, mots: true, temps: true, simon: true },
     homeMode: 'rotate', favs: ['memory']
@@ -2076,7 +2076,7 @@
   const b64 = str => btoa(unescape(encodeURIComponent(str)));
   const unb64 = str => decodeURIComponent(escape(atob(str.replace(/\n/g, ''))));
   const STORE_KEYS = ['simonBest', 'memLevel', 'puzzleLevel', 'colorDone', 'puzzleWins', 'labyWins', 'countLevel', 'digitNext', 'memPlays', 'memLock', 'puzzleDone', 'memThemesDone', 'namesDone', 'stickers'];
-  const SETTING_KEYS = ['pitch', 'levels', 'memPeek', 'memDelay', 'memGroup', 'memLimit', 'countMax', 'letters', 'timeLimit', 'homeMode', 'favs', 'games', 'names', 'volume', 'rate', 'effects'];
+  const SETTING_KEYS = ['simonMode', 'pitch', 'levels', 'memPeek', 'memDelay', 'memGroup', 'memLimit', 'countMax', 'letters', 'timeLimit', 'homeMode', 'favs', 'games', 'names', 'volume', 'rate', 'effects'];
 
   function ghStatus(txt, ok) { const e = $('#gh-status'); if (e) { e.textContent = txt; e.className = 'muted ' + (ok === true ? 'ok' : ok === false ? 'ko' : ''); } }
   async function ghGet(path) {
@@ -2562,17 +2562,25 @@
     { k: 'bleu', e: '🐳', n: 'la baleine', hex: '#1E63D6', dk: '#15469A', f: 783.99 },
     { k: 'jaune', e: '🐥', n: 'le poussin', hex: '#FFC21F', dk: '#C79200', f: 1046.5 }
   ];
+  // Mode « animaux » : 4 animaux au cri court, sur des touches claires
+  const SIMON_ANIMALS = [
+    { e: '🦆', n: 'le canard', hex: '#FFF4C7', dk: '#D9B64A' },
+    { e: '🐶', n: 'le chien', hex: '#FFE3C9', dk: '#D79A5E' },
+    { e: '🐷', n: 'le cochon', hex: '#FFD9E6', dk: '#D98AA6' },
+    { e: '🐭', n: 'la souris', hex: '#E3E8F2', dk: '#9AA6BF' }
+  ];
   const SIMON_LEVELS = [{ pads: 3, on: 700, gap: 300, start: 2 }, { pads: 4, on: 650, gap: 260, start: 2 }, { pads: 4, on: 430, gap: 180, start: 3 }];
   function simonGame(G, f) {
     const L = SIMON_LEVELS[lvl('simon')];
-    const pads = SIMON_PADS.slice(0, L.pads);
+    const animals = settings.simonMode === 'animaux';
+    const pads = (animals ? SIMON_ANIMALS : SIMON_PADS).slice(0, L.pads);
     if (!G.simonSeq) G.simonSeq = Array.from({ length: L.start }, () => rand(pads.length));
     else G.simonSeq.push(rand(pads.length));
     const seq = G.simonSeq;
     if (location.hash === '#test') window.__simon = { seq, listening: () => listening };
-    const box = el('div', 'simon' + (pads.length === 3 ? ' three' : ''));
+    const box = el('div', 'simon' + (pads.length === 3 ? ' three' : '') + (animals ? ' animals' : ''));
     const btns = pads.map((p, i) => {
-      const b = el('button', 'simon-pad', `<span>${p.e}</span>`);
+      const b = el('button', 'simon-pad', animals ? `<span>${p.e}</span>` : '');
       b.style.setProperty('--c', p.hex); b.style.setProperty('--d', p.dk);
       b.setAttribute('aria-label', p.n);
       box.append(b);
@@ -2582,7 +2590,9 @@
     box.append(mid);
     $('#stage').append(box);
     let pos = 0, listening = false, miss = 0;
-    const light = (i, ms) => { const b = btns[i]; b.classList.add('lit'); mallet(pads[i].f); setTimeout(() => b.classList.remove('lit'), ms); };
+    const sound = i => { if (animals) playCry(pads[i]); else mallet(pads[i].f); };
+    const light = (i, ms) => { const b = btns[i]; b.classList.add('lit'); sound(i); setTimeout(() => b.classList.remove('lit'), ms); };
+    const stepOn = slow => Math.max(animals ? 620 : 0, slow ? L.on * 1.4 : L.on);
     async function playSeq(slow) {
       listening = false; pos = 0;
       btns.forEach(b => b.classList.remove('hint'));
@@ -2590,17 +2600,15 @@
       await sleep(500);
       for (const i of seq) {
         if (f !== G.flow) return;
-        const on = slow ? L.on * 1.4 : L.on;
+        const on = stepOn(slow);
         light(i, on);
         await sleep(on + (slow ? L.gap * 1.5 : L.gap));
       }
       if (f !== G.flow) return;
       mid.classList.remove('busy');
-      if (seq.length <= 4 && (lvl('simon') === 0 || miss > 0)) await say(seq.map(i => pads[i].n).join(', ') + '. À toi !');
-      else await say('À toi !');
-      if (f !== G.flow) return;
-      listening = true;
-      if (miss >= 2) btns[seq[0]].classList.add('hint');
+      listening = true;                                   // on peut jouer tout de suite
+      if (miss >= 2) { btns[seq[0]].classList.add('hint'); say(seq.length <= 5 ? seq.map(i => pads[i].n).join(', ') + '. À toi !' : 'À toi !'); }
+      else say('À toi !');
     }
     btns.forEach((b, i) => b.addEventListener('pointerdown', async e => {
       e.preventDefault();
@@ -2617,7 +2625,7 @@
         await sleep(400);
         sfx.good(); box.classList.add('win');
         const dot = $$('.dot')[G.n]; if (dot) { dot.classList.add('on'); dot.textContent = '⭐'; }
-        await say(`Bravo ! Tu as retenu ${seq.length} couleurs !`);
+        await say(`Bravo ! Tu as retenu ${seq.length} ${animals ? 'animaux' : 'couleurs'} !`);
         if (f !== G.flow) return;
         G.n++; nextQ();
       } else {
@@ -2629,7 +2637,7 @@
       }
     }));
     $('#caption').textContent = 'Écoute, puis répète';
-    G.prompt = G.n === 0 ? 'Écoute bien et regarde les couleurs, puis touche-les dans le même ordre !' : 'Encore une couleur de plus ! Écoute bien.';
+    G.prompt = G.n === 0 ? (animals ? 'Écoute bien les animaux, puis touche-les dans le même ordre !' : 'Écoute bien et regarde les couleurs, puis touche-les dans le même ordre !') : (animals ? 'Encore un animal de plus !' : 'Encore une couleur de plus !');
     G.replay = () => { audio(); if (listening || mid.classList.contains('busy') === false) playSeq(miss >= 2); };
     (async () => { await say(G.prompt); if (f === G.flow) playSeq(false); })();
   }
@@ -3027,6 +3035,7 @@
   $('#set-countmax').onchange = e => { settings.countMax = +e.target.value; saveSettings(); refreshParentInfo(); };
   $('#set-letters').onchange = e => { settings.letters = e.target.value; saveSettings(); };
   $('#set-home').onchange = e => { settings.homeMode = e.target.value; saveSettings(); homeIds = null; };
+  $('#set-simonmode').onchange = e => { settings.simonMode = e.target.value; saveSettings(); };
   $('#set-mempeek').onchange = e => { settings.memPeek = +e.target.value; saveSettings(); };
   $('#set-memdelay').onchange = e => { settings.memDelay = e.target.value; saveSettings(); };
   $('#set-memgroup').onchange = e => { settings.memGroup = +e.target.value; saveSettings(); };
@@ -3126,6 +3135,7 @@
 
   function renderLevels() {
     $('#set-mempeek').value = String(settings.memPeek);
+    $('#set-simonmode').value = settings.simonMode;
     $('#set-memdelay').value = settings.memDelay;
     $('#set-memgroup').value = String(settings.memGroup);
     const box = $('#set-levels'); if (!box) return;
