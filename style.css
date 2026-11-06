@@ -668,6 +668,10 @@ details.pgroup > :not(summary) { margin-top: 12px; }
 .simon.oops { animation: wobble .5s; }
 .simon.win { animation: joy .8s; }
 
+.parent-scroll { width: 100%; min-width: 0; }
+.parent-scroll .row select { max-width: 62%; min-width: 0; text-overflow: ellipsis; }
+#set-voice { flex: 1 1 160px; }
+
 /* ---------- Fin / pause ---------- */
 .big-star { font-size: clamp(110px, 32vw, 170px); line-height: 1; animation: star-in 1s cubic-bezier(.3, 1.6, .5, 1); }
 .end-title { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 52px; line-height: 1; }

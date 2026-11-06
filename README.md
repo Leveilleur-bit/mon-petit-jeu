@@ -41,7 +41,7 @@ Appui long (2 secondes) sur la petite roue en haut à droite de l'écran des jeu
 
 **🐮 Cris des animaux** : écouter chaque cri, l'enregistrer au micro (4 s max), importer un fichier son (📁, ex. depuis bigsoundbank.com, sons libres de droits), ou revenir au cri de l'appli.
 
-Réglages : **difficulté jeu par jeu** (nombre d'images, formes seules ou avec couleurs, tracé facile ou précis, nombre de paires, de morceaux…), volume, vitesse de la voix, bruitages, prénom, autres prénoms à écrire, jeux affichés, « compter jusqu'à », lettres simples ou tout l'alphabet, jeux favoris ⭐, vider l'album, limite de temps d'écran par jour (temps cumulé sur toute la journée, liste des utilisations du jour, alerte vocale 2 minutes avant, « − 10 min », « + 10 min » et remise à zéro).
+Réglages : choix de la voix (voix de femme par défaut quand le téléphone l'indique) et hauteur de la voix, **difficulté jeu par jeu** (nombre d'images, formes seules ou avec couleurs, tracé facile ou précis, nombre de paires, de morceaux…), volume, vitesse de la voix, bruitages, prénom, autres prénoms à écrire, jeux affichés, « compter jusqu'à », lettres simples ou tout l'alphabet, jeux favoris ⭐, vider l'album, limite de temps d'écran par jour (temps cumulé sur toute la journée, liste des utilisations du jour, alerte vocale 2 minutes avant, « − 10 min », « + 10 min » et remise à zéro).
 Tout est enregistré sur le téléphone uniquement.
 
 ## Mettre en ligne (GitHub Pages)
@@ -61,7 +61,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v25` → `v26`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v26` → `v27`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique

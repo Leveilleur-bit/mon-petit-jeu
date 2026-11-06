@@ -18,7 +18,7 @@
 
   // ---------- Réglages ----------
   const DEFAULTS = {
-    volume: 1, rate: 0.9, effects: true, name: '', names: [],
+    volume: 1, rate: 0.9, pitch: 1.15, voiceURI: '', effects: true, name: '', names: [],
     countMax: 30, letters: 'simple', timeLimit: 0, memLimit: 5, levels: {}, memPeek: 0, memDelay: 'normal', memGroup: 2,
     games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true, fil: true, gouter: true, chiffres: true, vivant: true, cycle: true, nombres: true, monde_animaux: true, nature: true, formescouleurs: true, mots: true, temps: true, simon: true },
     homeMode: 'rotate', favs: ['memory']
@@ -30,15 +30,25 @@
   // ---------- Voix ----------
   const hasTTS = 'speechSynthesis' in window;
   let frVoice = null;
+  // Voix : celle choisie par les parents, sinon une voix française de femme si le téléphone en indique une
+  const FEMALE_HINT = /female|femme|amelie|amélie|audrey|aurelie|aurélie|marie|julie|hortense|denise|celine|céline|virginie|chantal|léa|lea|elsa|eloise|vivienne|x-fra|x-frc|x-vlf/i;
+  const MALE_HINT = /male\b|homme|thomas|nicolas|paul|henri|claude|x-frb|x-frd/i;
+  const frVoices = () => hasTTS ? speechSynthesis.getVoices().filter(v => /^fr/i.test(v.lang)) : [];
   function pickVoice() {
     if (!hasTTS) return;
-    const vs = speechSynthesis.getVoices();
-    frVoice = vs.find(v => /^fr[-_]FR/i.test(v.lang) && /google/i.test(v.name) && v.localService)
-      || vs.find(v => /^fr[-_]FR/i.test(v.lang) && v.localService)
-      || vs.find(v => /^fr[-_]FR/i.test(v.lang))
-      || vs.find(v => /^fr/i.test(v.lang)) || null;
+    const vs = frVoices();
+    const chosen = settings.voiceURI && vs.find(v => v.voiceURI === settings.voiceURI);
+    const fr = vs.filter(v => /^fr[-_]FR/i.test(v.lang));
+    frVoice = chosen
+      || fr.find(v => FEMALE_HINT.test(v.name + ' ' + v.voiceURI) && !/\bmale\b/i.test(v.name) && v.localService)
+      || fr.find(v => FEMALE_HINT.test(v.name + ' ' + v.voiceURI) && !/\bmale\b/i.test(v.name))
+      || fr.find(v => /google/i.test(v.name) && v.localService)
+      || fr.find(v => v.localService && !MALE_HINT.test(v.name))
+      || fr[0] || vs[0] || null;
+    if (typeof fillVoiceList === 'function') fillVoiceList();
   }
   if (hasTTS) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+  if (location.hash === '#test') window.__frVoice = () => frVoice && frVoice.name;
 
   let sayId = 0;
   function say(text) {
@@ -52,8 +62,8 @@
         if (id !== sayId) { resolve(); return; }
         const u = new SpeechSynthesisUtterance(text);
         u.lang = 'fr-FR';
-        if (frVoice) u.voice = frVoice;
-        u.rate = settings.rate; u.pitch = 1.1; u.volume = settings.volume;
+        if (frVoice) { try { u.voice = frVoice; } catch (e) { /* voix non reconnue : voix par défaut */ } }
+        u.rate = settings.rate; u.pitch = settings.pitch || 1.1; u.volume = settings.volume;
         let done = false;
         const fin = () => { if (done) return; done = true; if (id === sayId) btn.classList.remove('speaking'); resolve(); };
         u.onend = fin; u.onerror = fin;
@@ -2066,7 +2076,7 @@
   const b64 = str => btoa(unescape(encodeURIComponent(str)));
   const unb64 = str => decodeURIComponent(escape(atob(str.replace(/\n/g, ''))));
   const STORE_KEYS = ['simonBest', 'memLevel', 'puzzleLevel', 'colorDone', 'puzzleWins', 'labyWins', 'countLevel', 'digitNext', 'memPlays', 'memLock', 'puzzleDone', 'memThemesDone', 'namesDone', 'stickers'];
-  const SETTING_KEYS = ['levels', 'memPeek', 'memDelay', 'memGroup', 'memLimit', 'countMax', 'letters', 'timeLimit', 'homeMode', 'favs', 'games', 'names', 'volume', 'rate', 'effects'];
+  const SETTING_KEYS = ['pitch', 'levels', 'memPeek', 'memDelay', 'memGroup', 'memLimit', 'countMax', 'letters', 'timeLimit', 'homeMode', 'favs', 'games', 'names', 'volume', 'rate', 'effects'];
 
   function ghStatus(txt, ok) { const e = $('#gh-status'); if (e) { e.textContent = txt; e.className = 'muted ' + (ok === true ? 'ok' : ok === false ? 'ko' : ''); } }
   async function ghGet(path) {
@@ -2918,6 +2928,8 @@
   function fillParent() {
     $('#set-volume').value = settings.volume;
     $('#set-rate').value = settings.rate;
+    $('#set-pitch').value = settings.pitch || 1.1;
+    fillVoiceList();
     $('#set-effects').checked = settings.effects;
     $('#set-name').value = settings.name;
     renderNames();
@@ -2971,6 +2983,21 @@
   }
   $('#set-volume').oninput = e => { settings.volume = +e.target.value; saveSettings(); };
   $('#set-rate').oninput = e => { settings.rate = +e.target.value; saveSettings(); };
+  $('#set-pitch').oninput = e => { settings.pitch = +e.target.value; saveSettings(); };
+  $('#set-pitch').onchange = () => { audio(); say('Bonjour ! Voici ma voix.'); };
+  function fillVoiceList() {
+    const sel = $('#set-voice'); if (!sel) return;
+    const vs = frVoices();
+    sel.innerHTML = '';
+    const auto = el('option', '', 'Automatique (voix de femme si possible)'); auto.value = ''; sel.append(auto);
+    vs.forEach((v, i) => {
+      const tag = FEMALE_HINT.test(v.name + ' ' + v.voiceURI) ? ' ♀' : MALE_HINT.test(v.name + ' ' + v.voiceURI) ? ' ♂' : '';
+      const o = el('option', '', `${v.name.replace(/^Google\s*/, 'Google ')}${tag}${v.localService ? '' : ' (en ligne)'}`); o.value = v.voiceURI; sel.append(o);
+    });
+    sel.value = settings.voiceURI && vs.some(v => v.voiceURI === settings.voiceURI) ? settings.voiceURI : '';
+    $('#voice-count').textContent = vs.length <= 1 ? 'Le téléphone ne propose qu\'une seule voix française : changez-la dans les réglages Android (voir ci-dessous).' : `${vs.length} voix françaises sur ce téléphone.`;
+  }
+  $('#set-voice').onchange = e => { settings.voiceURI = e.target.value; saveSettings(); pickVoice(); refreshParentInfo(); audio(); say('Bonjour ! Voici ma voix.'); };
   $('#set-effects').onchange = e => { settings.effects = e.target.checked; saveSettings(); };
   $('#set-name').oninput = e => { settings.name = e.target.value.trim(); saveSettings(); };
   function renderNames() {

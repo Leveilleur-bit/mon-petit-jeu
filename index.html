@@ -128,7 +128,11 @@
     <details class="pgroup" data-k="s1">
       <summary>Voix et sons</summary>
       <label class="row" for="set-volume"><span>Volume</span><input id="set-volume" type="range" min="0.2" max="1" step="0.1"></label>
+      <label class="row" for="set-voice"><span>Voix</span><select id="set-voice"></select></label>
+      <p id="voice-count" class="muted"></p>
       <label class="row" for="set-rate"><span>Vitesse de la voix</span><input id="set-rate" type="range" min="0.6" max="1.2" step="0.05"></label>
+      <label class="row" for="set-pitch"><span>Hauteur de la voix</span><input id="set-pitch" type="range" min="0.8" max="1.6" step="0.05"></label>
+      <p class="muted">Si la voix reste une voix d'homme : Paramètres Android → Gestion globale → Langue et saisie → Synthèse vocale → moteur Google → ⚙ → Installer les données vocales → Français (France) → choisissez une voix de femme, puis relancez l'appli.</p>
       <label class="row" for="set-effects"><span>Bruitages</span><input id="set-effects" type="checkbox" class="switch"></label>
       <div class="row"><span id="voice-info" class="muted"></span><button id="btn-test-voice" class="pill-text">Tester</button></div>
     </details>
