@@ -19,6 +19,7 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | 🐘 Grand, moyen, petit | Toucher le plus grand, le plus petit, puis le moyen |
 | 🖍️ Coloriage | 15 dessins à colorier (maison, fleur, poisson, papillon, voiture, licorne, château, fusée, chat, arc-en-ciel, bateau, glace, gâteau, princesse, escargot), cochés ✓ une fois faits, et dessin libre au doigt avec gomme |
 | 🎵 Musique | Xylophone libre ou 3 chansons guidées |
+| 🔴 Répète après moi | 4 grosses touches de couleur (grenouille, coccinelle, baleine, poussin), chacune avec sa note : l'appli joue une suite, l'enfant la refait ; une couleur de plus à chaque réussite (5 suites par partie). En cas d'erreur, la suite est rejouée (plus lentement et avec un indice après 2 erreurs). Niveaux : 3 couleurs lent, 4 couleurs, 4 couleurs rapide |
 | 🌿 Le labyrinthe | Un jardin de haies : faire glisser l'animal dans les allées jusqu'à son goûter (impasses, un seul bon chemin). De 3 × 4 à 8 × 12 cases, la taille monte seule. Le haut-parleur fait briller les prochaines cases du bon chemin |
 
 Les jeux regroupés gardent un réglage de difficulté et une ligne de bilan pour chaque thème (Lettres, Lire, Compter, Chiffres, Couleurs, Formes, Suites, Moments, Journée, Saisons, Cris, Goûter, Ombres, Fruits et légumes, Vivant ou pas, Ça grandit). Maximum prévu : 20 jeux.
@@ -60,7 +61,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v24` → `v25`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v25` → `v26`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique
