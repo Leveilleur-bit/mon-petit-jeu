@@ -20,7 +20,7 @@
   const DEFAULTS = {
     volume: 1, rate: 0.9, pitch: 1.15, voiceURI: '', simonMode: 'couleurs', effects: true, name: '', names: [],
     countMax: 30, letters: 'simple', timeLimit: 0, memLimit: 5, levels: {}, memPeek: 0, memDelay: 'normal', memGroup: 2,
-    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true, fil: true, gouter: true, chiffres: true, vivant: true, cycle: true, nombres: true, monde_animaux: true, nature: true, formescouleurs: true, mots: true, temps: true, simon: true },
+    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true, fil: true, gouter: true, chiffres: true, vivant: true, cycle: true, nombres: true, monde_animaux: true, nature: true, formescouleurs: true, mots: true, temps: true, simon: true, robot: true },
     homeMode: 'rotate', favs: ['memory']
   };
   const saved = store.get('settings', {});
@@ -323,6 +323,7 @@
         };
       }
     },
+    robot: { name: 'Les flèches', intro: 'Les flèches magiques !', icon: '➡️', color: '#1E9BD6', rounds: 3, full: true, make(G) { return { custom: robotGame }; } },
     fil: {
       name: 'Le labyrinthe', intro: 'Le labyrinthe !', icon: '🌿', color: '#2E8B57', rounds: 1, full: true,
       make(G) { return { custom: mazeGame }; }
@@ -416,6 +417,7 @@
     prenom: { opts: ['Lettres seulement', 'Lettres + tracé facile', 'Lettres + tracé précis'], def: 1 },
     memory: { opts: ['3 paires', '4 paires', '5 paires', '6 paires', '8 paires', '10 paires'], key: 'memLevel' },
     puzzle: { opts: ['2 morceaux', '4 morceaux', '6 morceaux', '9 morceaux', '12 morceaux', '16 morceaux'], key: 'puzzleLevel' },
+    robot: { opts: ['3 × 3, 1 ou 2 flèches tout droit', '4 × 4, avec un virage', '4 × 5 avec rochers', '5 × 5, jusqu\'à 7 flèches'], key: 'robotLevel' },
     fil: { opts: ['3 × 4 cases', '4 × 5 cases', '5 × 6 cases', '5 × 7 cases', '6 × 8 cases', '7 × 10 cases', '8 × 12 cases'], key: 'labyWins' }
   };
   function lvl(id) {
@@ -453,8 +455,8 @@
     temps: combo('Le temps', 'Le temps qui passe !', '⏰', '#E8A400', 5, () => ['moments', 'moments', 'journee', 'saisons', 'moments']),
     mots: combo('Lettres et mots', 'Les lettres et les mots !', '🔤', '#1E63D6', 5, () => ['lettres', 'lettres', 'lire', 'lettres', 'lire'])
   });
-  const ORDER = ['memory', 'puzzle', 'prenom', 'mots', 'nombres', 'formescouleurs', 'monde_animaux', 'nature', 'temps', 'tailles', 'coloriage', 'musique', 'simon', 'fil'];
-  const SUB_ORDER = ['lettres', 'lire', 'prenom', 'compter', 'chiffres', 'couleurs', 'formes', 'suites', 'animaux', 'gouter', 'ombres', 'potager', 'vivant', 'cycle', 'moments', 'journee', 'saisons', 'tailles', 'memory', 'puzzle', 'fil', 'coloriage', 'musique', 'simon'];
+  const ORDER = ['memory', 'puzzle', 'prenom', 'mots', 'nombres', 'formescouleurs', 'monde_animaux', 'nature', 'temps', 'tailles', 'coloriage', 'musique', 'simon', 'robot', 'fil'];
+  const SUB_ORDER = ['lettres', 'lire', 'prenom', 'compter', 'chiffres', 'couleurs', 'formes', 'suites', 'animaux', 'gouter', 'ombres', 'potager', 'vivant', 'cycle', 'moments', 'journee', 'saisons', 'tailles', 'memory', 'puzzle', 'fil', 'coloriage', 'musique', 'simon', 'robot'];
 
   function letterPool() {
     const base = settings.letters === 'all' ? LETTERS : LETTERS.filter(x => SIMPLE_LETTERS.includes(x.l));
@@ -1556,6 +1558,163 @@
   ];
   const pron = n => /^la /.test(n) || ['la souris', 'la poule', 'la chenille', 'la vache'].includes(n) ? 'elle' : 'il';
 
+  // ---------- Les flèches : programmer le chemin de l'animal (premier algorithme) ----------
+  // L'enfant pose des flèches (haut, bas, gauche, droite), puis appuie sur ▶ : l'animal suit le programme.
+  const ROBOT_LEVELS = [
+    { C: 3, R: 3, min: 1, max: 2, rocks: 0, turn: false },
+    { C: 4, R: 4, min: 2, max: 4, rocks: 0, turn: true },
+    { C: 4, R: 5, min: 3, max: 5, rocks: 3, turn: true },
+    { C: 5, R: 5, min: 4, max: 7, rocks: 5, turn: true }
+  ];
+  const DIRS = {
+    h: { dx: 0, dy: -1, rot: 0, n: 'en haut', c: '#2EAD4B', d: '#1F7F36' },
+    d: { dx: 1, dy: 0, rot: 90, n: 'à droite', c: '#EF4F6C', d: '#BF2F4C' },
+    b: { dx: 0, dy: 1, rot: 180, n: 'en bas', c: '#F08A3C', d: '#C0601C' },
+    g: { dx: -1, dy: 0, rot: 270, n: 'à gauche', c: '#1E63D6', d: '#15469A' }
+  };
+  const arrowSvg = k => `<svg viewBox="0 0 24 24" class="arr" style="transform:rotate(${DIRS[k].rot}deg)" aria-hidden="true"><path d="M12 2.5l8.5 9.5h-5.3v9.5H8.8V12H3.5z"/></svg>`;
+  const robotLevel = () => Math.min(store.get('robotLevel', 0), ROBOT_LEVELS.length - 1);
+  function robotPuzzle(L) {
+    const key = (x, y) => x + ',' + y;
+    for (let tries = 0; tries < 400; tries++) {
+      const sx = rand(L.C), sy = rand(L.R);
+      const rocks = new Set();
+      while (rocks.size < L.rocks) { const x = rand(L.C), y = rand(L.R); if (x !== sx || y !== sy) rocks.add(key(x, y)); }
+      // plus court chemin depuis le départ (sans rochers)
+      const dist = new Map([[key(sx, sy), 0]]), prev = new Map(), q = [[sx, sy]];
+      while (q.length) {
+        const [x, y] = q.shift();
+        Object.keys(DIRS).forEach(k => {
+          const nx = x + DIRS[k].dx, ny = y + DIRS[k].dy, nk = key(nx, ny);
+          if (nx < 0 || ny < 0 || nx >= L.C || ny >= L.R || rocks.has(nk) || dist.has(nk)) return;
+          dist.set(nk, dist.get(key(x, y)) + 1); prev.set(nk, [x, y, k]); q.push([nx, ny]);
+        });
+      }
+      const cands = [...dist].filter(([k, d]) => d >= L.min && d <= L.max).map(([k]) => k.split(',').map(Number))
+        .filter(([x, y]) => L.turn || x === sx || y === sy)
+        .filter(([x, y]) => !L.turn || L.min < 2 || (x !== sx && y !== sy) || Math.random() < 0.25);
+      if (!cands.length) continue;
+      const [gx, gy] = pick(cands);
+      // avec des rochers, il faut qu'ils gênent un peu : le chemin le plus court doit les contourner parfois
+      const path = []; let p = key(gx, gy);
+      while (prev.has(p)) { const [x, y, k] = prev.get(p); path.unshift({ k, x: +p.split(',')[0], y: +p.split(',')[1] }); p = key(x, y); }
+      return { start: [sx, sy], goal: [gx, gy], rocks, path };
+    }
+    return { start: [0, 0], goal: [1, 0], rocks: new Set(), path: [{ k: 'd', x: 1, y: 0 }] };
+  }
+  function robotGame(G, f) {
+    const L = ROBOT_LEVELS[robotLevel()];
+    const P = robotPuzzle(L);
+    if (location.hash === '#test') window.__robot = P;
+    const meal = pickNew(MEALS, G, m => m.n);
+    const maxLen = Math.min(10, Math.max(P.path.length + 2, 4));
+    const stage = $('#stage');
+    const board = el('div', 'rb-board');
+    board.style.gridTemplateColumns = `repeat(${L.C}, 1fr)`;
+    board.style.gridTemplateRows = `repeat(${L.R}, 1fr)`;
+    board.style.aspectRatio = `${L.C} / ${L.R}`;
+    board.style.setProperty('--ar', L.C / L.R);
+    const cells = [];
+    for (let y = 0; y < L.R; y++) for (let x = 0; x < L.C; x++) {
+      const c = el('div', 'rb-cell' + ((x + y) % 2 ? ' alt' : ''));
+      if (P.rocks.has(x + ',' + y)) c.innerHTML = '<span class="rb-rock">🪨</span>';
+      if (x === P.goal[0] && y === P.goal[1]) c.innerHTML = `<span class="rb-goal">${meal.f}</span>`;
+      board.append(c); cells.push(c);
+    }
+    const hero = el('div', 'rb-hero', `<span>${meal.a}</span>`);
+    hero.style.width = (100 / L.C) + '%'; hero.style.height = (100 / L.R) + '%';
+    board.append(hero);
+    const place = (x, y) => { hero.style.left = (x * 100 / L.C) + '%'; hero.style.top = (y * 100 / L.R) + '%'; };
+    place(...P.start);
+    const prog = el('div', 'rb-prog');
+    const pad = el('div', 'rb-pad');
+    const keys = ['g', 'h', 'b', 'd'];
+    keys.forEach(k => {
+      const b = el('button', 'rb-key', arrowSvg(k));
+      b.style.setProperty('--c', DIRS[k].c); b.style.setProperty('--d', DIRS[k].d);
+      b.setAttribute('aria-label', DIRS[k].n);
+      b.onclick = () => add(k);
+      pad.append(b);
+    });
+    const del = el('button', 'rb-del', '⌫'); del.setAttribute('aria-label', 'Effacer');
+    const go = el('button', 'rb-go', '▶'); go.setAttribute('aria-label', 'C\'est parti');
+    const ctl = el('div', 'rb-ctl'); ctl.append(del, pad, go);
+    stage.append(board, prog, ctl);
+    let code = [], running = false, miss = 0, done = false;
+    function drawProg(active = -1, bad = -1) {
+      prog.innerHTML = '';
+      for (let i = 0; i < maxLen; i++) {
+        const k = code[i];
+        const s = el('div', 'rb-slot' + (k ? ' on' : '') + (i === active ? ' run' : '') + (i === bad ? ' bad' : ''), k ? arrowSvg(k) : '');
+        if (k) { s.style.setProperty('--c', DIRS[k].c); s.style.setProperty('--d', DIRS[k].d); }
+        prog.append(s);
+      }
+      go.classList.toggle('ready', code.length > 0 && !running);
+    }
+    function add(k) {
+      if (f !== G.flow || running || done) return;
+      audio(); hush();
+      if (code.length >= maxLen) { sfx.soft(); say('Il n\'y a plus de place ! Appuie sur le bouton vert.'); return; }
+      code.push(k); sfx.tap(); drawProg(); say(DIRS[k].n);
+    }
+    del.onclick = () => { if (f !== G.flow || running || done || !code.length) return; audio(); code.pop(); sfx.soft(); drawProg(); };
+    function showHint() {
+      cells.forEach(c => c.classList.remove('foot'));
+      P.path.slice(0, -1).forEach(s => cells[s.y * L.C + s.x].classList.add('foot'));
+    }
+    go.onclick = async () => {
+      if (f !== G.flow || running || done) return;
+      audio(); hush();
+      if (!code.length) { say('Touche d\'abord les flèches, pour dire le chemin !'); pad.classList.remove('nudge'); void pad.offsetWidth; pad.classList.add('nudge'); return; }
+      running = true; drawProg();
+      let [x, y] = P.start, fail = null, reached = false;
+      for (let i = 0; i < code.length; i++) {
+        if (f !== G.flow) return;
+        drawProg(i);
+        const D = DIRS[code[i]], nx = x + D.dx, ny = y + D.dy;
+        if (nx < 0 || ny < 0 || nx >= L.C || ny >= L.R) { fail = { i, why: 'bord' }; break; }
+        if (P.rocks.has(nx + ',' + ny)) { fail = { i, why: 'rocher' }; break; }
+        x = nx; y = ny; place(x, y); sfx.count(i + 1);
+        await sleep(520);
+        if (x === P.goal[0] && y === P.goal[1]) { reached = true; break; }
+      }
+      if (f !== G.flow) return;
+      if (reached) {
+        done = true; drawProg();
+        statAnswer('robot', miss === 0);
+        sfx.good(); hero.classList.add('eat'); cells[y * L.C + x].classList.add('won');
+        const dot = $$('.dot')[G.n]; if (dot) { dot.classList.add('on'); dot.textContent = '⭐'; }
+        await say(`Miam ! ${cap(meal.n)} a trouvé ${meal.fn} ! Bravo, tu as fait le bon programme !`);
+        if (f !== G.flow) return;
+        G.n++; G.robotMiss = (G.robotMiss || 0) + miss; nextQ();
+        return;
+      }
+      miss++;
+      if (fail) {
+        drawProg(-1, fail.i);
+        hero.classList.remove('bump'); void hero.offsetWidth; hero.classList.add('bump'); sfx.soft();
+        statAnswer('robot', false, fail.why === 'rocher' ? 'bloqué par un rocher' : 'sorti du jardin');
+        await say(fail.why === 'rocher' ? 'Oh ! Un rocher ! Il faut passer à côté. Change cette flèche.' : 'Oh ! Par là, on sort du jardin ! Change cette flèche.');
+        code = code.slice(0, fail.i);
+      } else {
+        drawProg(); sfx.soft();
+        statAnswer('robot', false, 'pas assez de flèches');
+        await say(`Presque ! ${cap(meal.n)} n'est pas encore arrivé${pron(meal.n) === 'elle' ? 'e' : ''}. Ajoute des flèches !`);
+      }
+      if (f !== G.flow) return;
+      // l'animal repart du début ; le début du programme est gardé
+      place(...P.start); hero.classList.remove('bump');
+      if (miss >= 2) { showHint(); say('Suis les petits pas !'); }
+      running = false; drawProg();
+    };
+    drawProg();
+    $('#caption').textContent = 'Pose les flèches, puis ▶';
+    G.prompt = G.n === 0
+      ? `Aide ${meal.n} à aller jusqu'à ${meal.fn} ! Touche les flèches pour dire le chemin, puis appuie sur le bouton vert.`
+      : `Maintenant, ${meal.n} veut ${meal.fn}. Pose les flèches, puis le bouton vert !`;
+    say(G.prompt);
+  }
+
   // ---------- Le labyrinthe : un jardin de haies, l'animal en haut, son goûter en bas ----------
   // Tailles (colonnes × lignes) ; le niveau monte seul à chaque labyrinthe réussi.
   const LABY_LEVELS = [[3, 4], [4, 5], [5, 6], [5, 7], [6, 8], [7, 10], [8, 12]];
@@ -2075,7 +2234,7 @@
   const ghHeaders = () => ({ Authorization: 'token ' + ghToken(), Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' });
   const b64 = str => btoa(unescape(encodeURIComponent(str)));
   const unb64 = str => decodeURIComponent(escape(atob(str.replace(/\n/g, ''))));
-  const STORE_KEYS = ['simonBest', 'memLevel', 'puzzleLevel', 'colorDone', 'puzzleWins', 'labyWins', 'countLevel', 'digitNext', 'memPlays', 'memLock', 'puzzleDone', 'memThemesDone', 'namesDone', 'stickers'];
+  const STORE_KEYS = ['robotLevel', 'simonBest', 'memLevel', 'puzzleLevel', 'colorDone', 'puzzleWins', 'labyWins', 'countLevel', 'digitNext', 'memPlays', 'memLock', 'puzzleDone', 'memThemesDone', 'namesDone', 'stickers'];
   const SETTING_KEYS = ['simonMode', 'pitch', 'levels', 'memPeek', 'memDelay', 'memGroup', 'memLimit', 'countMax', 'letters', 'timeLimit', 'homeMode', 'favs', 'games', 'names', 'volume', 'rate', 'effects'];
 
   function ghStatus(txt, ok) { const e = $('#gh-status'); if (e) { e.textContent = txt; e.className = 'muted ' + (ok === true ? 'ok' : ok === false ? 'ko' : ''); } }
@@ -2115,7 +2274,8 @@
       today: usage ? { minutes: Math.round(usage.sec / 60), extra: usage.extra, sessions: usage.log || [] } : null,
       progress: st,
       settings: s,
-      configApplied: store.get('configVersion', 0)
+      configApplied: store.get('configVersion', 0),
+      voices: hasTTS ? { using: frVoice ? frVoice.name : null, fr: frVoices().map(v => ({ name: v.name, uri: v.voiceURI, lang: v.lang, local: v.localService, def: v.default })), total: speechSynthesis.getVoices().length } : null
     };
   }
   let syncTimer = null, syncing = false;
@@ -2782,6 +2942,7 @@
     if (G.def.counting) store.set('countLevel', Math.min(settings.countMax, countLevel() + 2));
     if (G.id === 'memory') { const w = store.get('memLevel', 0); G.leveledUp = w < MEMORY_AUTO_MAX; if (G.leveledUp) store.set('memLevel', w + 1); }
     if (G.id === 'fil') { const w = store.get('labyWins', 0); G.leveledUp = w < LABY_LEVELS.length - 1; store.set('labyWins', Math.min(w + 1, LABY_LEVELS.length - 1)); }
+    if (G.id === 'robot' && (G.robotMiss || 0) <= 1) { const w = store.get('robotLevel', 0); G.leveledUp = w < ROBOT_LEVELS.length - 1; if (G.leveledUp) store.set('robotLevel', w + 1); }
     G.memLocked = false;
     if (G.id === 'memory' && settings.memLimit > 0) {
       const n = store.get('memPlays', 0) + 1;
