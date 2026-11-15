@@ -12,7 +12,8 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | ✏️ Mon prénom | Remettre les lettres du prénom dans l'ordre, puis les tracer au doigt ; autres prénoms en niveaux |
 | 🔤 Lettres et mots | Mélange : « Où est la lettre B ? B comme ballon » et lecture des syllabes (LA · PIN) |
 | 🔢 Les nombres | Compter les objets, retrouver le chiffre, puis tracer ce nombre au doigt |
-| 🎨 Formes et couleurs | Mélange : « Où est le rouge ? », « Où est le triangle rouge ? » et suites logiques (🔴🔵🔴🔵❓ : A B A B, puis A A B, puis A B C) |
+| 🎨 Formes et couleurs | Mélange : « Où est le rouge ? » et « Où est le triangle rouge ? » |
+| 🔁 Les algorithmes | Mélange : « Qu'est-ce qui manque ? » (une petite histoire : le marchand a vendu un jouet, le chat a mangé un biscuit, le vent a emporté un ballon, la chèvre a mangé une fleur… et il faut trouver la case vide au milieu de la suite) et « Qu'est-ce qui vient après ? » (🔴🔵🔴🔵❓). Motifs A B A B, puis A B C / A A B, puis variés avec 4 choix |
 | 🐾 Les animaux | Mélange : qui fait ce bruit ? (cris), qu'est-ce qu'il mange ? (goûter), où est son ombre ? |
 | 🌱 La nature | Mélange : fruits et légumes, vivant ou pas vivant (deux paniers), remettre dans l'ordre comment ça grandit (poule, papillon, fleur, grenouille, personne) |
 | ⏰ Le temps | Mélange : « Et maintenant, c'est quand ? » (d'après l'heure du téléphone), « Le bain, c'est quand ? » (matin, midi, après-midi, soir, nuit), remettre sa journée dans l'ordre (réveil → petit-déjeuner → école → goûter → bain → dodo), les saisons (bonhomme de neige, plage, feuilles qui tombent…) |
@@ -23,7 +24,7 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | ➡️ Les flèches | Premier algorithme : poser des flèches (haut, bas, gauche, droite) pour écrire le chemin de l'animal jusqu'à son goûter, puis appuyer sur ▶ et le regarder suivre le programme. Si une flèche fait sortir du jardin ou buter sur un rocher, elle clignote et on la change ; après 2 essais, des petits pas montrent le chemin. 3 chemins par partie. Niveaux (montent seuls) : 3 × 3 tout droit, 4 × 4 avec virage, 4 × 5 avec rochers, 5 × 5 jusqu'à 7 flèches |
 | 🌿 Le labyrinthe | Un jardin de haies : faire glisser l'animal dans les allées jusqu'à son goûter (impasses, un seul bon chemin). De 3 × 4 à 8 × 12 cases, la taille monte seule. Le haut-parleur fait briller les prochaines cases du bon chemin |
 
-Les jeux regroupés gardent un réglage de difficulté et une ligne de bilan pour chaque thème (Lettres, Lire, Compter, Chiffres, Couleurs, Formes, Suites, Moments, Journée, Saisons, Cris, Goûter, Ombres, Fruits et légumes, Vivant ou pas, Ça grandit). Maximum prévu : 20 jeux.
+Les jeux regroupés gardent un réglage de difficulté et une ligne de bilan pour chaque thème (Lettres, Lire, Compter, Chiffres, Couleurs, Formes, Suites, Ce qui manque, Moments, Journée, Saisons, Cris, Goûter, Ombres, Fruits et légumes, Vivant ou pas, Ça grandit). Maximum prévu : 20 jeux.
 
 **Accueil** : 9 jeux tirés au hasard à chaque ouverture de l'appli, en priorité ceux qui n'étaient pas affichés la fois précédente (réglable : « Tous les jeux »). Les jeux marqués ⭐ dans le coin des parents sont toujours affichés (Memory par défaut).
 
@@ -62,7 +63,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v28` → `v29`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v29` → `v30`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique

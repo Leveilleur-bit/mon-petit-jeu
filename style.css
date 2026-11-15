@@ -631,6 +631,18 @@ details.pgroup > :not(summary) { margin-top: 12px; }
 .choices.suite-choices .choice { min-height: 120px; }
 .choices.suite-choices .shape { width: min(22vw, 90px); }
 
+.trou-scene { position: relative; width: 100%; max-width: 520px; margin: 4vh auto 0; padding: 14px 6px 30px; border-radius: 22px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.trou-scene.shop { background: linear-gradient(#FBE3C4 70%, #A8693A 70%); }
+.trou-scene.table { background: linear-gradient(#FDE2EC 70%, #8C5A36 70%); }
+.trou-scene.sky { background: linear-gradient(#CFEAFF 70%, #8FCB7A 70%); }
+.trou-scene.grass { background: linear-gradient(#DFF3FF 60%, #8FCB7A 60%); }
+.trou-actor { border: 0; background: none; font-size: clamp(64px, 19vw, 96px); line-height: 1; animation: bob 2.4s ease-in-out infinite; }
+.trou-row { margin-top: 0; gap: 4px; flex-wrap: nowrap; }
+.choices.row.four4 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.trou-row .s-it { width: min(10.6vw, 60px); flex: 0 0 auto; }
+.trou-row .s-it .emo { font-size: min(7.4vw, 40px); }
+.s-hole { background: rgb(255 255 255 / .5); box-shadow: 0 0 0 3px var(--sun); border: 3px dashed var(--sun-dk); }
+
 /* Le temps */
 #game .choices.skies { grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; margin-top: 2vh; }
 .choices.skies .choice { padding: 0; overflow: hidden; min-height: 92px; }

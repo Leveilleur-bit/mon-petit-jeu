@@ -20,7 +20,7 @@
   const DEFAULTS = {
     volume: 1, rate: 0.9, pitch: 1.15, voiceURI: '', simonMode: 'couleurs', effects: true, name: '', names: [],
     countMax: 30, letters: 'simple', timeLimit: 0, memLimit: 5, levels: {}, memPeek: 0, memDelay: 'normal', memGroup: 2,
-    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true, fil: true, gouter: true, chiffres: true, vivant: true, cycle: true, nombres: true, monde_animaux: true, nature: true, formescouleurs: true, mots: true, temps: true, simon: true, robot: true },
+    games: { potager: true, compter: true, couleurs: true, lettres: true, animaux: true, memory: true, puzzle: true, lire: true, prenom: true, formes: true, tailles: true, ombres: true, coloriage: true, musique: true, fil: true, gouter: true, chiffres: true, vivant: true, cycle: true, nombres: true, monde_animaux: true, nature: true, formescouleurs: true, mots: true, temps: true, simon: true, robot: true, algo: true },
     homeMode: 'rotate', favs: ['memory']
   };
   const saved = store.get('settings', {});
@@ -294,6 +294,7 @@
     moments: { name: 'Moments de la journée', intro: 'Le temps !', icon: '🌅', color: '#E8A400', rounds: 5, make(G) { return momentQuestion(G); } },
     journee: { name: 'Ma journée', intro: 'Ma journée !', icon: '⏰', color: '#E8A400', rounds: 3, make(G) { return { custom: dayOrderGame }; } },
     saisons: { name: 'Les saisons', intro: 'Les saisons !', icon: '🍂', color: '#E8A400', rounds: 5, make(G) { return seasonQuestion(G); } },
+    trou: { name: 'Ce qui manque', intro: 'Qu\'est-ce qui manque ?', icon: '🧩', color: '#1E9BD6', rounds: 5, make(G) { return trouQuestion(G); } },
     suites: {
       name: 'Suites logiques', intro: 'Les suites !', icon: '🔁', color: '#1E9BD6', rounds: 5,
       make(G) { return suiteQuestion(G); }
@@ -413,6 +414,7 @@
     moments: { opts: ['Matin, soir, nuit', "+ l'après-midi", '+ le midi'], def: 0 },
     journee: { opts: ['3 étapes', '4 étapes', 'Toute la journée (6)'], def: 0 },
     saisons: { opts: ['Été et hiver', 'Les 4 saisons'], def: 0 },
+    trou: { opts: ['A B A B', 'A B C, A A B', 'Motifs variés, trou n\'importe où, 4 choix'], def: 0 },
     suites: { opts: ['A B A B', 'A A B, A B B', 'A B C, A A B B'], def: 0 },
     prenom: { opts: ['Lettres seulement', 'Lettres + tracé facile', 'Lettres + tracé précis'], def: 1 },
     memory: { opts: ['3 paires', '4 paires', '5 paires', '6 paires', '8 paires', '10 paires'], key: 'memLevel' },
@@ -451,12 +453,13 @@
     nombres: combo('Les nombres', 'Les nombres !', '🔢', '#7A5BD6', 4, () => ['compter', 'chiffre', 'compter', 'chiffre'], { counting: true }),
     monde_animaux: combo('Les animaux', 'Les animaux !', '🐾', '#3F9A43', 6, () => { const p = shuffle(['animaux', 'animaux', 'gouter', 'gouter', 'ombres', 'ombres']); return p; }),
     nature: combo('La nature', 'La nature !', '🌱', '#2E8B57', 5, () => shuffle(['potager', 'potager', 'vivant', 'vivant', 'cycle'])),
-    formescouleurs: combo('Formes et couleurs', 'Les formes et les couleurs !', '🎨', '#1E9BD6', 5, () => shuffle(['couleurs', 'formes', 'formes', 'suites', 'suites'])),
+    formescouleurs: combo('Formes et couleurs', 'Les formes et les couleurs !', '🎨', '#1E9BD6', 5, () => shuffle(['couleurs', 'couleurs', 'formes', 'formes', 'formes'])),
+    algo: combo('Les algorithmes', 'Les suites !', '🔁', '#8E44C9', 6, () => shuffle(['trou', 'trou', 'trou', 'suites', 'suites', 'suites'])),
     temps: combo('Le temps', 'Le temps qui passe !', '⏰', '#E8A400', 5, () => ['moments', 'moments', 'journee', 'saisons', 'moments']),
     mots: combo('Lettres et mots', 'Les lettres et les mots !', '🔤', '#1E63D6', 5, () => ['lettres', 'lettres', 'lire', 'lettres', 'lire'])
   });
-  const ORDER = ['memory', 'puzzle', 'prenom', 'mots', 'nombres', 'formescouleurs', 'monde_animaux', 'nature', 'temps', 'tailles', 'coloriage', 'musique', 'simon', 'robot', 'fil'];
-  const SUB_ORDER = ['lettres', 'lire', 'prenom', 'compter', 'chiffres', 'couleurs', 'formes', 'suites', 'animaux', 'gouter', 'ombres', 'potager', 'vivant', 'cycle', 'moments', 'journee', 'saisons', 'tailles', 'memory', 'puzzle', 'fil', 'coloriage', 'musique', 'simon', 'robot'];
+  const ORDER = ['memory', 'puzzle', 'prenom', 'mots', 'nombres', 'formescouleurs', 'algo', 'monde_animaux', 'nature', 'temps', 'tailles', 'coloriage', 'musique', 'simon', 'robot', 'fil'];
+  const SUB_ORDER = ['lettres', 'lire', 'prenom', 'compter', 'chiffres', 'couleurs', 'formes', 'suites', 'trou', 'animaux', 'gouter', 'ombres', 'potager', 'vivant', 'cycle', 'moments', 'journee', 'saisons', 'tailles', 'memory', 'puzzle', 'fil', 'coloriage', 'musique', 'simon', 'robot'];
 
   function letterPool() {
     const base = settings.letters === 'all' ? LETTERS : LETTERS.filter(x => SIMPLE_LETTERS.includes(x.l));
@@ -2558,6 +2561,60 @@
       confKey: `${pat.map(i => 'ABCD'[i]).join('')} : ${ans.n}`,
       onCorrect: () => { qs.innerHTML = suiteHtml(ans); qs.classList.add('filled'); },
       choices: opts.map(o => ({ html: suiteHtml(o), label: o.n, correct: o === ans, wrong: `Hmm… redis la suite avec moi : ${read}… Et après ?` }))
+    };
+  }
+
+  // ---------- Algorithmes : qu'est-ce qui manque dans la suite ? (comme dans les cahiers de maternelle) ----------
+  const TROU_SCENES = [
+    { actor: '🧔', bg: 'shop', set: () => shuffle([{ e: '🚗', n: 'la voiture' }, { e: '🧸', n: 'le nounours' }, { e: '🏠', n: 'la maison' }, { e: '⚽', n: 'le ballon' }, { e: '🪁', n: 'le cerf-volant' }]),
+      ask: 'Le marchand a vendu un jouet ! Quel jouet a-t-il vendu ?', cap: 'Quel jouet a été vendu ?', ok: n => `Oui ! Le marchand a vendu ${n}.` },
+    { actor: '🐱', bg: 'table', set: () => { const c = pick(['#E8A65A', '#F2C27B', '#C98A4B']); return shuffle(SHAPES.filter(s => ['le rond', 'le carré', 'le triangle', "l'étoile", 'le cœur'].includes(s.n))).map(s => ({ h: shapeSvg(s, c), n: s.n })); },
+      ask: 'Le chat a mangé un biscuit ! De quelle forme était le biscuit ?', cap: 'Quel biscuit a été mangé ?', ok: n => `Oui ! Le chat a mangé le biscuit en forme de ${n.replace(/^(le |la |l')/, '')}.` },
+    { actor: '🌬️', bg: 'sky', set: () => { const sh = SHAPES.find(s => s.n === 'le rond'); return shuffle(SHAPE_COL.slice(0, 6)).map(c => ({ h: shapeSvg(sh, c.hex), n: c.m })); },
+      ask: 'Oh ! Le vent a emporté un ballon ! De quelle couleur était-il ?', cap: 'Quel ballon s\'est envolé ?', ok: n => `Oui ! Le ballon ${n} s'est envolé.` },
+    { actor: '🐐', bg: 'grass', set: () => shuffle([{ e: '🌷', n: 'la tulipe' }, { e: '🌻', n: 'le tournesol' }, { e: '🌼', n: 'la marguerite' }, { e: '🌹', n: 'la rose' }]),
+      ask: 'La chèvre a mangé une fleur ! Quelle fleur a-t-elle mangée ?', cap: 'Quelle fleur a été mangée ?', ok: n => `Oui ! La chèvre a mangé ${n}.` },
+    { actor: '🐦', bg: 'table', set: () => shuffle([{ e: '🍎', n: 'la pomme' }, { e: '🍌', n: 'la banane' }, { e: '🍇', n: 'le raisin' }, { e: '🍓', n: 'la fraise' }, { e: '🍐', n: 'la poire' }]),
+      ask: 'L\'oiseau a emporté un fruit ! Quel fruit a-t-il emporté ?', cap: 'Quel fruit a été emporté ?', ok: n => `Oui ! L'oiseau a emporté ${n}.` },
+    { actor: '🧒', bg: 'grass', set: () => shuffle([{ e: '🐶', n: 'le chien' }, { e: '🐱', n: 'le chat' }, { e: '🐰', n: 'le lapin' }, { e: '🐷', n: 'le cochon' }]),
+      ask: 'Un animal est parti se cacher ! Qui est parti se cacher ?', cap: 'Qui est parti se cacher ?', ok: n => `Oui ! C'est ${n} qui s'est caché.` }
+  ];
+  function trouQuestion(G) {
+    const L = lvl('trou');
+    const pats = L === 0 ? [[0, 1]] : L === 1 ? [[0, 1, 2], [0, 0, 1], [0, 1, 1]] : [[0, 1, 2], [0, 0, 1, 1], [0, 1, 1], [0, 1, 2, 2], [0, 0, 1]];
+    const pat = pick(pats);
+    const sc = pickNew(TROU_SCENES, G, s => s.ask);
+    const set = sc.set();
+    const els = set.slice(0, Math.max(...pat) + 1);
+    const len = Math.min(8, Math.max(6, pat.length * 2 + (L ? 1 : 0)));
+    const seq = Array.from({ length: len }, (_, i) => els[pat[i % pat.length]]);
+    // le trou : après au moins un motif complet et avant la fin (niveau 3 : n'importe où sauf au tout début)
+    const lo = L === 2 ? 1 : pat.length, hi = len - 2;
+    const gap = lo + rand(Math.max(1, hi - lo + 1));
+    const ans = seq[gap];
+    const wrap = el('div', 'trou-scene ' + sc.bg);
+    const actor = el('button', 'trou-actor', sc.actor);
+    actor.setAttribute('aria-label', 'Écouter encore'); actor.onclick = repeat;
+    const row = el('div', 'suite trou-row');
+    let hole;
+    seq.forEach((it, i) => {
+      const c = el('span', 's-it' + (i === gap ? ' s-q s-hole' : ''), i === gap ? '?' : suiteHtml(it));
+      c.style.animationDelay = (i * 100) + 'ms';
+      if (i === gap) hole = c;
+      row.append(c);
+    });
+    wrap.append(actor, row);
+    const read = seq.map((it, i) => i === gap ? 'hmm' : it.n.replace(/^(le |la |l')/, '')).join(', ');
+    const nOpt = L === 2 ? Math.min(4, set.length) : 3;
+    const opts = shuffle([ans, ...shuffle(set.filter(x => x !== ans)).slice(0, nOpt - 1)]);
+    return {
+      visual: wrap, row: true, cls: 'suite-choices' + (opts.length === 4 ? ' four4' : ''),
+      prompt: `${sc.ask} Regarde bien la suite.`,
+      caption: sc.cap,
+      success: sc.ok(ans.n),
+      confKey: `${pat.map(i => 'ABCD'[i]).join('')} : ${ans.n.replace(/^(le |la |l')/, '')}`,
+      onCorrect: () => { hole.innerHTML = suiteHtml(ans); hole.classList.add('filled'); },
+      choices: opts.map(o => ({ html: suiteHtml(o), label: o.n, correct: o === ans, wrong: `Hmm… redis la suite avec moi : ${read}… Qu'est-ce qui manque ?` }))
     };
   }
 
