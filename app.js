@@ -290,7 +290,7 @@
       name: 'Ça grandit !', intro: 'Comment ça grandit ?', icon: '🐣', color: '#E8A400', rounds: 3,
       make(G) { return { custom: cycleGame }; }
     },
-    simon: { name: 'Répète après moi', intro: 'Répète après moi !', icon: '🔴', color: '#E53935', rounds: 5, full: true, make(G) { return { custom: simonGame }; } },
+    simon: { name: 'Répète après moi', intro: 'Répète après moi !', icon: '🔴', color: '#E53935', rounds: 3, full: true, make(G) { return { custom: simonGame }; } },
     moments: { name: 'Moments de la journée', intro: 'Le temps !', icon: '🌅', color: '#E8A400', rounds: 5, make(G) { return momentQuestion(G); } },
     journee: { name: 'Ma journée', intro: 'Ma journée !', icon: '⏰', color: '#E8A400', rounds: 3, make(G) { return { custom: dayOrderGame }; } },
     saisons: { name: 'Les saisons', intro: 'Les saisons !', icon: '🍂', color: '#E8A400', rounds: 5, make(G) { return seasonQuestion(G); } },
@@ -410,7 +410,7 @@
     vivant: { opts: ['Animaux et objets', '+ les plantes', '+ les pièges (nounours, robot, soleil…)'], def: 1 },
     cycle: { opts: ['3 étapes', '4 étapes'], def: 0 },
     chiffres: { opts: ['Tracé facile', 'Tracé précis'], def: 0 },
-    simon: { opts: ['3 couleurs, lent', '4 couleurs', '4 couleurs, rapide (départ à 3)'], def: 0 },
+    simon: { opts: ['3 touches, lent (suites de 1 à 3)', '4 touches (suites de 2 à 4)', '4 touches, rapide (suites de 3 à 5)'], def: 0 },
     moments: { opts: ['Matin, soir, nuit', "+ l'après-midi", '+ le midi'], def: 0 },
     journee: { opts: ['3 étapes', '4 étapes', 'Toute la journée (6)'], def: 0 },
     saisons: { opts: ['Été et hiver', 'Les 4 saisons'], def: 0 },
@@ -420,7 +420,7 @@
     memory: { opts: ['3 paires', '4 paires', '5 paires', '6 paires', '8 paires', '10 paires'], key: 'memLevel' },
     puzzle: { opts: ['2 morceaux', '4 morceaux', '6 morceaux', '9 morceaux', '12 morceaux', '16 morceaux'], key: 'puzzleLevel' },
     robot: { opts: ['3 × 3, 1 ou 2 flèches tout droit', '4 × 4, avec un virage', '4 × 5 avec rochers', '5 × 5, jusqu\'à 7 flèches'], key: 'robotLevel' },
-    fil: { opts: ['3 × 4 cases', '4 × 5 cases', '5 × 6 cases', '5 × 7 cases', '6 × 8 cases', '7 × 10 cases', '8 × 12 cases'], key: 'labyWins' }
+    fil: { opts: ['3 × 4 cases', '4 × 5 cases', '5 × 6 cases', '5 × 7 cases', '6 × 8 cases', '7 × 10 cases', '8 × 12 cases', '7 × 10 avec une clé 🔑', '8 × 12 avec une clé 🔑', '9 × 13 avec une clé 🔑'], key: 'labyWins' }
   };
   function lvl(id) {
     const c = LEVEL_CFG[id];
@@ -1720,7 +1720,7 @@
 
   // ---------- Le labyrinthe : un jardin de haies, l'animal en haut, son goûter en bas ----------
   // Tailles (colonnes × lignes) ; le niveau monte seul à chaque labyrinthe réussi.
-  const LABY_LEVELS = [[3, 4], [4, 5], [5, 6], [5, 7], [6, 8], [7, 10], [8, 12]];
+  const LABY_LEVELS = [[3, 4], [4, 5], [5, 6], [5, 7], [6, 8], [7, 10], [8, 12], [7, 10, 1], [8, 12, 1], [9, 13, 1]];
   const labyLevel = () => Math.min(store.get('labyWins', 0), LABY_LEVELS.length - 1);
 
   function makeMaze(C, R) {
@@ -1764,8 +1764,9 @@
     return path;
   }
 
+  const auN = n => /^le /.test(n) ? 'au ' + n.slice(3) : 'à ' + n;
   function mazeGame(G, f) {
-    const [C, R] = LABY_LEVELS[labyLevel()];
+    const [C, R, withKey] = LABY_LEVELS[labyLevel()];
     const wrap = el('div', 'maze laby');
     $('#stage').append(wrap);
     const W = wrap.clientWidth, H = wrap.clientHeight;
@@ -1781,6 +1782,20 @@
     const start = [rand(C), 0], goal = [rand(C), R - 1];
     walls[0][start[0]].n = false; walls[R - 1][goal[0]].s = false;   // l'entrée en haut, la sortie en bas
     const sol = solve(walls, C, R, start, goal);
+    // la clé : au fond d'une impasse, loin du bon chemin ; il faut la ramasser avant d'aller au goûter
+    let keyCell = null, hasKey = !withKey, toldKey = false;
+    if (withKey) {
+      const onSol = new Set(sol.map(p => p.join(',')));
+      const ends = [];
+      for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+        if (onSol.has(c + ',' + r)) continue;
+        const w = walls[r][c];
+        if (['n', 's', 'e', 'w'].filter(k => !w[k]).length === 1) ends.push([c, r]);
+      }
+      const far = ends.map(p => ({ p, d: solve(walls, C, R, start, p).length })).sort((a, b) => b.d - a.d);
+      keyCell = far.length ? pick(far.slice(0, Math.max(1, Math.ceil(far.length / 3)))).p : null;
+      if (!keyCell) hasKey = true;
+    }
     const pad = 14, top = 30, bot = 34;
     const cs = Math.floor(Math.min((W - 2 * pad) / C, (H - top - bot) / R));
     const ox = (W - cs * C) / 2, oy = top + (H - top - bot - cs * R) / 2;
@@ -1818,6 +1833,12 @@
       }
       x.stroke();
       x.strokeStyle = 'rgba(255,255,255,.25)'; x.lineWidth = hw * 0.35; x.stroke();
+      if (keyCell && !hasKey) {
+        x.textAlign = 'center'; x.textBaseline = 'middle';
+        x.fillStyle = `rgba(255,200,61,${0.4 + 0.2 * Math.sin(performance.now() / 300)})`;
+        x.beginPath(); x.arc(cx(keyCell[0]), cy(keyCell[1]), cs * 0.4, 0, Math.PI * 2); x.fill();
+        x.fillStyle = '#000'; x.font = fontE(cs * 0.55); x.fillText('🔑', cx(keyCell[0]), cy(keyCell[1]) + 1);
+      }
       // le goûter qui brille, l'animal
       x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#000';
       const t = performance.now() / 500;
@@ -1825,6 +1846,7 @@
       x.beginPath(); x.arc(cx(goal[0]), oy + cs * R + bot / 2 - 2, Math.min(cs * 0.45, 30), 0, Math.PI * 2); x.fill();
       x.fillStyle = '#000';
       x.font = fontE(Math.min(cs * 0.6, 44)); x.fillText(meal.f, cx(goal[0]), oy + cs * R + bot / 2);
+      if (!hasKey) { x.font = fontE(Math.min(cs * 0.42, 26)); x.fillText('🔒', cx(goal[0]) + Math.min(cs * 0.42, 24), oy + cs * R + bot / 2 - 4); }
       if (!finished && !dragging && trail.length === 1) {
         x.strokeStyle = 'rgba(63,154,67,.9)'; x.lineWidth = 4;
         x.beginPath(); x.arc(cx(cur[0]), cy(cur[1]), cs * 0.42 + 3 * Math.sin(t * 1.3), 0, Math.PI * 2); x.stroke();
@@ -1857,11 +1879,16 @@
       if (trail.length > 1 && same(trail[trail.length - 2], n)) trail.pop(); else trail.push(n);
       cur = n;
       note(520 + trail.length * 18, 0, 0.05, 'sine', 0.06);
-      if (same(cur, goal)) { win(); return; }
+      if (keyCell && !hasKey && same(cur, keyCell)) { hasKey = true; sfx.good(); say(`Bravo, tu as la clé ! Maintenant, va jusqu'${auN(meal.fn)} !`); return; }
+      if (same(cur, goal)) {
+        if (hasKey) { win(); return; }
+        if (!toldKey) { toldKey = true; sfx.soft(); say('C\'est fermé à clé ! Va d\'abord chercher la clé.'); }
+        return;
+      }
       const w = walls[cur[1]][cur[0]];
       const exits = ['n', 's', 'e', 'w'].filter(k => !w[k]).length;
       const key = cur.join(',');
-      if (exits === 1 && !warned.has(key)) { warned.add(key); say("Oh, c'est bouché ! Fais demi-tour."); }
+      if (exits === 1 && !warned.has(key) && !(keyCell && same(cur, keyCell))) { warned.add(key); say("Oh, c'est bouché ! Fais demi-tour."); }
     }
     const ptr = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
     cv.addEventListener('pointerdown', e => {
@@ -1890,14 +1917,17 @@
     }
     function showHint() {
       // montre les 3 prochaines cases du bon chemin depuis la dernière case juste
-      let i = 0;
-      for (let k = trail.length - 1; k >= 0; k--) { const j = sol.findIndex(p => same(p, trail[k])); if (j >= 0) { i = j; break; } }
-      hint = sol.slice(i + 1, i + 4);
+      if (withKey) hint = solve(walls, C, R, cur, hasKey ? goal : keyCell).slice(1, 4);
+      else {
+        let i = 0;
+        for (let k = trail.length - 1; k >= 0; k--) { const j = sol.findIndex(p => same(p, trail[k])); if (j >= 0) { i = j; break; } }
+        hint = sol.slice(i + 1, i + 4);
+      }
       setTimeout(() => { hint = null; }, 2500);
     }
-    if (location.hash === '#test') window.__laby = { sol, start, goal, cs, ox, oy, rect: () => cv.getBoundingClientRect() };
-    $('#caption').textContent = `Emmène ${meal.n} jusqu'${/^le /.test(meal.fn) ? 'au ' + meal.fn.slice(3) : 'à ' + meal.fn}`;
-    G.prompt = `${cap(meal.n)} a faim ! ${cap(meal.fn)} est tout en bas. Fais glisser ${meal.n} dans les allées du labyrinthe !`;
+    if (location.hash === '#test') window.__laby = { sol, start, goal, cs, ox, oy, keyCell, toKey: () => keyCell ? solve(walls, C, R, start, keyCell).concat(solve(walls, C, R, keyCell, goal).slice(1)) : sol, rect: () => cv.getBoundingClientRect() };
+    $('#caption').textContent = withKey ? 'Prends la clé 🔑, puis va au goûter' : `Emmène ${meal.n} jusqu'${auN(meal.fn)}`;
+    G.prompt = withKey ? `${cap(meal.n)} a faim, mais la porte est fermée à clé ! Va d'abord chercher la clé, puis emmène ${meal.n} jusqu'${auN(meal.fn)} !` : `${cap(meal.n)} a faim ! ${cap(meal.fn)} est tout en bas. Fais glisser ${meal.n} dans les allées du labyrinthe !`;
     G.replay = () => { audio(); say('Regarde les petites étoiles : elles montrent le chemin !'); showHint(); };
     say(G.prompt);
   }
@@ -2786,7 +2816,7 @@
     { e: '🐷', n: 'le cochon', hex: '#FFD9E6', dk: '#D98AA6' },
     { e: '🐭', n: 'la souris', hex: '#E3E8F2', dk: '#9AA6BF' }
   ];
-  const SIMON_LEVELS = [{ pads: 3, on: 700, gap: 300, start: 2 }, { pads: 4, on: 650, gap: 260, start: 2 }, { pads: 4, on: 430, gap: 180, start: 3 }];
+  const SIMON_LEVELS = [{ pads: 3, on: 700, gap: 300, start: 1 }, { pads: 4, on: 650, gap: 260, start: 2 }, { pads: 4, on: 430, gap: 180, start: 3 }];
   function simonGame(G, f) {
     const L = SIMON_LEVELS[lvl('simon')];
     const animals = settings.simonMode === 'animaux';
@@ -2842,7 +2872,7 @@
         await sleep(400);
         sfx.good(); box.classList.add('win');
         const dot = $$('.dot')[G.n]; if (dot) { dot.classList.add('on'); dot.textContent = '⭐'; }
-        await say(`Bravo ! Tu as retenu ${seq.length} ${animals ? 'animaux' : 'couleurs'} !`);
+        await say(seq.length === 1 ? 'Bravo ! C\'est ça !' : `Bravo ! Tu as retenu ${seq.length} ${animals ? 'animaux' : 'couleurs'} !`);
         if (f !== G.flow) return;
         G.n++; nextQ();
       } else {

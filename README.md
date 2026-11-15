@@ -20,9 +20,9 @@ Sans publicité, sans compte, consignes à l'oral, jamais de « perdu ».
 | 🐘 Grand, moyen, petit | Toucher le plus grand, le plus petit, puis le moyen |
 | 🖍️ Coloriage | 15 dessins à colorier (maison, fleur, poisson, papillon, voiture, licorne, château, fusée, chat, arc-en-ciel, bateau, glace, gâteau, princesse, escargot), cochés ✓ une fois faits, et dessin libre au doigt avec gomme |
 | 🎵 Musique | Xylophone libre ou 3 chansons guidées |
-| 🔴 Répète après moi | 4 grosses touches : l'appli joue une suite, l'enfant la refait ; une touche de plus à chaque réussite (5 suites par partie). Au choix dans le coin des parents : **couleurs et notes** (par défaut) ou **animaux et cris** (canard, chien, cochon, souris ; les cris enregistrés sont utilisés). On peut toucher dès la fin de la suite. En cas d'erreur, la suite est rejouée (plus lentement, avec un indice et les noms dits à voix haute après 2 erreurs). Niveaux : 3 touches lent, 4 touches, 4 touches rapide |
+| 🔴 Répète après moi | 4 grosses touches : l'appli joue une suite, l'enfant la refait ; une touche de plus à chaque réussite (3 suites par partie, en partant d'une seule touche au premier niveau). Au choix dans le coin des parents : **couleurs et notes** (par défaut) ou **animaux et cris** (canard, chien, cochon, souris ; les cris enregistrés sont utilisés). On peut toucher dès la fin de la suite. En cas d'erreur, la suite est rejouée (plus lentement, avec un indice et les noms dits à voix haute après 2 erreurs). Niveaux : 3 touches lent (suites de 1 à 3), 4 touches (2 à 4), 4 touches rapide (3 à 5) |
 | ➡️ Les flèches | Premier algorithme : poser des flèches (haut, bas, gauche, droite) pour écrire le chemin de l'animal jusqu'à son goûter, puis appuyer sur ▶ et le regarder suivre le programme. Si une flèche fait sortir du jardin ou buter sur un rocher, elle clignote et on la change ; après 2 essais, des petits pas montrent le chemin. 3 chemins par partie. Niveaux (montent seuls) : 3 × 3 tout droit, 4 × 4 avec virage, 4 × 5 avec rochers, 5 × 5 jusqu'à 7 flèches |
-| 🌿 Le labyrinthe | Un jardin de haies : faire glisser l'animal dans les allées jusqu'à son goûter (impasses, un seul bon chemin). De 3 × 4 à 8 × 12 cases, la taille monte seule. Le haut-parleur fait briller les prochaines cases du bon chemin |
+| 🌿 Le labyrinthe | Un jardin de haies : faire glisser l'animal dans les allées jusqu'à son goûter (impasses, un seul bon chemin). De 3 × 4 à 8 × 12 cases, puis trois niveaux avec une clé 🔑 cachée au fond d'une impasse, à ramasser avant d'aller au goûter (jusqu'à 9 × 13) ; le niveau monte seul. Le haut-parleur fait briller les prochaines cases du bon chemin |
 
 Les jeux regroupés gardent un réglage de difficulté et une ligne de bilan pour chaque thème (Lettres, Lire, Compter, Chiffres, Couleurs, Formes, Suites, Ce qui manque, Moments, Journée, Saisons, Cris, Goûter, Ombres, Fruits et légumes, Vivant ou pas, Ça grandit). Maximum prévu : 20 jeux.
 
@@ -63,7 +63,7 @@ Le coin des parents indique la voix utilisée, avec un bouton « Tester ».
 
 ## Mettre à jour l'appli
 
-Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v29` → `v30`…).
+Après une modification, changer le numéro dans `sw.js` (`mon-petit-jeu-v30` → `v31`…).
 Le téléphone prend la nouvelle version au lancement suivant.
 
 ## Technique
